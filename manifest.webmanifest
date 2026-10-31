@@ -1,0 +1,14 @@
+{
+  "name": "Zirbenstube – Getränkeliste",
+  "short_name": "Zirbenstube",
+  "description": "Strichliste und Monatsabrechnung für die Getränke der Zirbenstube.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f1e8",
+  "theme_color": "#8a5a2b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

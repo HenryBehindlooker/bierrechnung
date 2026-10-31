@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zirbenstube – Getränkeliste</title>
+  <meta name="description" content="Strichliste und Monatsabrechnung für die Getränke der Zirbenstube.">
+  <meta name="theme-color" content="#8a5a2b">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Zirbenstube">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-header">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icon.svg" alt="" width="34" height="34">
+        <div class="brand-text">
+          <h1>Zirbenstube</h1>
+          <p>Getränkeliste</p>
+        </div>
+      </div>
+      <div class="month-nav">
+        <button type="button" class="icon-btn" id="prevMonth" aria-label="Vorheriger Monat">‹</button>
+        <button type="button" class="month-label" id="monthLabel" title="Zum aktuellen Monat springen"></button>
+        <button type="button" class="icon-btn" id="nextMonth" aria-label="Nächster Monat">›</button>
+      </div>
+    </header>
+    <nav class="tabs" role="tablist" aria-label="Bereiche">
+      <button type="button" role="tab" data-tab="liste">Strichliste</button>
+      <button type="button" role="tab" data-tab="abrechnung">Abrechnung</button>
+      <button type="button" role="tab" data-tab="einstellungen">Einstellungen</button>
+    </nav>
+  </div>
+
+  <main id="view" tabindex="-1"></main>
+
+  <div id="print" aria-hidden="true"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>
