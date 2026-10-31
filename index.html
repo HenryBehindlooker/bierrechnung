@@ -5,41 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Zirbenstube – Getränkeliste</title>
   <meta name="description" content="Strichliste und Monatsabrechnung für die Getränke der Zirbenstube.">
-  <meta name="theme-color" content="#8a5a2b">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Zirbenstube">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-header">
-    <header class="topbar">
-      <div class="brand">
-        <img src="icon.svg" alt="" width="34" height="34">
-        <div class="brand-text">
-          <h1>Zirbenstube</h1>
-          <p>Getränkeliste</p>
-        </div>
-      </div>
-      <div class="month-nav">
-        <button type="button" class="icon-btn" id="prevMonth" aria-label="Vorheriger Monat">‹</button>
-        <button type="button" class="month-label" id="monthLabel" title="Zum aktuellen Monat springen"></button>
-        <button type="button" class="icon-btn" id="nextMonth" aria-label="Nächster Monat">›</button>
-      </div>
-    </header>
-    <nav class="tabs" role="tablist" aria-label="Bereiche">
-      <button type="button" role="tab" data-tab="liste">Strichliste</button>
-      <button type="button" role="tab" data-tab="abrechnung">Abrechnung</button>
-      <button type="button" role="tab" data-tab="einstellungen">Einstellungen</button>
-    </nav>
-  </div>
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <div class="nav-leading" id="navLeading"></div>
+      <div class="nav-title" id="navTitle" aria-hidden="true"></div>
+      <div class="nav-trailing" id="navTrailing"></div>
+    </div>
+  </header>
 
-  <main id="view" tabindex="-1"></main>
+  <main id="view">
+    <div class="large-title">
+      <h1 id="largeTitle"></h1>
+      <p id="largeSubtitle"></p>
+    </div>
+    <div id="content"></div>
+  </main>
+
+  <div class="bottom-fade" aria-hidden="true"></div>
+  <nav class="tabbar glass" id="tabbar" role="tablist" aria-label="Bereiche"></nav>
 
   <div id="print" aria-hidden="true"></div>
-  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="hud" class="glass" role="status" aria-live="polite"></div>
+  <div id="sr-live" class="sr-only" aria-live="polite"></div>
+  <div id="alert-root"></div>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
 
   <script src="app.js"></script>

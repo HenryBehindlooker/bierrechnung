@@ -20,7 +20,16 @@ sich von selbst.
 - **Sicherung:** alle Daten als JSON herunterladen und wieder laden, z. B. um sie
   auf ein anderes Gerät zu übertragen.
 - Funktioniert offline und lässt sich auf dem Handy oder Tablet zum
-  Startbildschirm hinzufügen. Hell- und Dunkelmodus.
+  Startbildschirm hinzufügen.
+
+## Design
+
+Die Oberfläche folgt dem SwiftUI- bzw. iOS-Design: große Navigationstitel,
+gruppierte Listen (Inset Grouped), Segmented Control für die Wochen, Stepper
+zum Zählen, eine schwebende Tab-Leiste im Liquid-Glass-Stil, Alerts im
+iOS-Stil sowie iOS-Systemfarben im Hell- und Dunkelmodus. Die Akzentfarbe ist
+Bernstein. Personen und Getränke lassen sich unter *Einstellungen → Bearbeiten*
+per Ziehen sortieren oder löschen.
 
 Standardmäßig angelegt: Leo, Max, Jonas, Gast 1, Gast 2 sowie Limo (1,50 €),
 Bier (1,80 €) und Spezi (1,80 €).
