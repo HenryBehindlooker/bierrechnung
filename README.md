@@ -38,7 +38,7 @@ Bier (1,80 €) und Spezi (1,80 €).
 
 Die Daten liegen **nur im Browser des Geräts** (localStorage). Am besten nutzt
 ihr ein gemeinsames Gerät, zum Beispiel ein Tablet in der Stube, und ladet ab und
-zu unter *Einstellungen → Sicherung herunterladen* eine Sicherung herunter.
+zu unter *Einstellungen → Sicherung exportieren* eine Sicherung herunter.
 
 ## Starten
 
