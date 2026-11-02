@@ -69,13 +69,13 @@
       version: VERSION,
       persons: [['Leo', 'blue'], ['Max', 'green'], ['Jonas', 'purple'], ['Gast 1', 'orange'], ['Gast 2', 'pink']]
         .map(([name, color]) => ({ id: uid(), name, color, archived: false })),
-      drinks: [['Limo', 1.5], ['Bier', 1.8], ['Spezi', 1.8]].map(([n, p], i) => newDrink(n, p, i)),
+      drinks: [['Bier', 1.8], ['Limo', 1.5], ['Spezi', 1.8]].map(([n, p], i) => newDrink(n, p, i)),
+      settings: { bierFirst: true },
       months: {},
       payments: [],
       purchases: [],
       empties: [],
       cash: [],
-      settings: {},
     });
   }
 
@@ -117,6 +117,16 @@
     s.empties = Array.isArray(s.empties) ? s.empties : [];
     s.cash = Array.isArray(s.cash) ? s.cash : [];
     s.settings = { paypal: '', note: '', defaultMethod: 'bar', purchasesFromCash: true, ...(s.settings || {}) };
+    // Einmalig: Bier nach oben, falls noch die ursprüngliche Reihenfolge Limo, Bier, Spezi gilt
+    if (!s.settings.bierFirst) {
+      const names = s.drinks.filter((d) => !d.archived).map((d) => d.name);
+      if (names.join('|') === 'Limo|Bier|Spezi') {
+        const bier = s.drinks.find((d) => d.name === 'Bier' && !d.archived);
+        s.drinks.splice(s.drinks.indexOf(bier), 1);
+        s.drinks.splice(s.drinks.indexOf(s.drinks.find((d) => d.name === 'Limo' && !d.archived)), 0, bier);
+      }
+      s.settings.bierFirst = true;
+    }
     // v1: „bezahlt“-Haken pro Monat → Zahlungen in Höhe des Monatsbetrags
     for (const key of Object.keys(s.months).sort()) {
       const m = s.months[key];
