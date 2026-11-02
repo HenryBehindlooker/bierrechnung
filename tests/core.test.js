@@ -128,6 +128,26 @@ test('Übernahme v2: Zahlungen und Einkäufe vor dem Kassenbuch zählen nicht zu
   assert.equal(Core.cashBalance(v2), 2, 'neue Barzahlungen zählen');
 });
 
+test('Bier steht oben: neue Listen und einmalige Umstellung alter Listen', () => {
+  assert.deepEqual(Core.defaultState().drinks.map((d) => d.name), ['Bier', 'Limo', 'Spezi']);
+  const old = Core.migrate({
+    version: 2,
+    persons: [],
+    drinks: [{ id: 'l', name: 'Limo', price: 1.5 }, { id: 'b', name: 'Bier', price: 1.8 }, { id: 's', name: 'Spezi', price: 1.8 }],
+    months: {},
+  });
+  assert.deepEqual(old.drinks.map((d) => d.id), ['b', 'l', 's']);
+  // danach frei sortierbar: wer Limo wieder nach oben holt, behält das
+  old.drinks.reverse();
+  assert.deepEqual(Core.migrate(clone(old)).drinks.map((d) => d.id), ['s', 'l', 'b']);
+  // selbst sortierte Listen werden nicht angefasst
+  const custom = Core.migrate({
+    version: 2, persons: [], months: {},
+    drinks: [{ id: 's', name: 'Spezi', price: 1.8 }, { id: 'l', name: 'Limo', price: 1.5 }, { id: 'b', name: 'Bier', price: 1.8 }],
+  });
+  assert.deepEqual(custom.drinks.map((d) => d.id), ['s', 'l', 'b']);
+});
+
 test('Ungültige Daten werden erkannt', () => {
   assert.equal(Core.isValidState(null), false);
   assert.equal(Core.isValidState({ persons: [], drinks: [] }), false);
