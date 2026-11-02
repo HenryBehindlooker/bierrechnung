@@ -13,10 +13,10 @@ const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli
   'August', 'September', 'Oktober', 'November', 'Dezember'];
 const MONTH_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const TABS = {
-  liste: 'Strichliste', abrechnung: 'Abrechnung', bestand: 'Bestand',
+  liste: 'Strichliste', abrechnung: 'Abrechnung', bestand: 'Kasse',
   statistik: 'Statistik', einstellungen: 'Einstellungen',
 };
-const TAB_ICONS = { liste: 'tally', abrechnung: 'euro', bestand: 'box', statistik: 'chart', einstellungen: 'sliders' };
+const TAB_ICONS = { liste: 'tally', abrechnung: 'euro', bestand: 'wallet', statistik: 'chart', einstellungen: 'sliders' };
 
 const COLORS = {
   red: '#ff3b30', orange: '#ff9500', yellow: '#ffcc00', green: '#34c759', mint: '#00c7be', teal: '#30b0c7',
@@ -26,7 +26,7 @@ const COLOR_LABELS = {
   red: 'Rot', orange: 'Orange', yellow: 'Gelb', green: 'Grün', mint: 'Mint', teal: 'Türkis',
   blue: 'Blau', indigo: 'Indigo', purple: 'Lila', pink: 'Pink', brown: 'Braun', gray: 'Grau',
 };
-const PERSON_CYCLE = ['blue', 'green', 'purple', 'orange', 'pink', 'teal', 'indigo', 'red', 'mint', 'brown'];
+const { PERSON_CYCLE, METHODS, uid, round2, parsePrice, parseCount, keyOf, guessDrink, priceOf, count, monthTotal } = Core;
 const DRINK_EMOJIS = ['🍺', '🍻', '🍋', '🥤', '🧃', '🍷', '🥂', '🍾', '🥃', '🍸', '🍹', '🧉',
   '🧋', '☕️', '🍵', '🥛', '💧', '🍊', '🍎', '🥥', '🍶', '⚡️', '🧊', '🍫'];
 
@@ -34,19 +34,8 @@ const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' 
 const eur0 = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const num = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const round2 = (n) => Math.round(n * 100) / 100;
-const parsePrice = (s) => {
-  const v = parseFloat(String(s).trim().replace('€', '').replace(',', '.'));
-  return Number.isFinite(v) && v >= 0 ? round2(v) : null;
-};
-const parseCount = (s) => {
-  const t = String(s).trim();
-  if (!/^-?\d+$/.test(t)) return null;
-  return parseInt(t, 10);
-};
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const fmtDate = (iso) => {
   const d = new Date(iso);
@@ -87,6 +76,13 @@ const ICONS = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   mug: '<path d="M6 9h10v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M5.5 9c0-2 1.6-3.2 3.2-2.7.9-1.5 3.4-1.5 4.3 0 1.6-.5 3.5.7 3.5 2.7"/>',
   warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  lockOpen: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.7-1.5"/>',
+  image: '<rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4.5 4"/>',
+  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  counter: '<path d="M3 10h18M5 10v10M19 10v10M3 20h18"/><path d="M7 10V6.5a1.5 1.5 0 0 1 3 0V10M14 10V5h4v5"/>',
+  recycle: '<path d="M7 19H4.5a1.5 1.5 0 0 1-1.3-2.2L5.5 13M17 19h2.5a1.5 1.5 0 0 0 1.3-2.2L18.5 13M9.5 5.2l1.2-2a1.5 1.5 0 0 1 2.6 0l2.2 3.8"/><path d="M7 16l-1.5 3L9 20.5M16.5 15.5l.5 3.5-3.5.5M14 4l1.7 3.2-3.5.8"/>',
+  coins: '<ellipse cx="9" cy="7" rx="5" ry="2.5"/><path d="M4 7v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V7"/><path d="M10 15.5c.9 1.2 2.8 2 5 2 2.8 0 5-1.1 5-2.5v-4c0-1.4-2.2-2.5-5-2.5-.6 0-1.2 0-1.7.1"/>',
 };
 const icon = (name, cls = '') =>
   `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -113,83 +109,12 @@ const avatar = (p, size = '') => {
 const drinkTile = (d, size = '') =>
   `<span class="tile ${size}" style="--c:${COLORS[d.color] || COLORS.gray}" aria-hidden="true">${esc(d.emoji || '🥤')}</span>`;
 
-function guessDrink(name, i) {
-  const n = String(name).toLowerCase();
-  const rules = [
-    [/radler|bier|pils|weizen|helles|export|dunkel|lager/, '🍺', 'orange'],
-    [/limo|zitron/, '🍋', 'yellow'],
-    [/spezi|cola|mezzo/, '🥤', 'brown'],
-    [/wasser|sprudel/, '💧', 'blue'],
-    [/sekt|prosecco|champ/, '🥂', 'yellow'],
-    [/wein/, '🍷', 'red'],
-    [/schnaps|obstler|whisk|korn|likör|gin|rum/, '🥃', 'brown'],
-    [/kaffee|espresso/, '☕️', 'brown'],
-    [/tee/, '🍵', 'green'],
-    [/saft|schorle/, '🧃', 'orange'],
-    [/mate/, '🧉', 'green'],
-    [/energy|red bull/, '⚡️', 'blue'],
-  ];
-  for (const [re, emoji, color] of rules) if (re.test(n)) return { emoji, color };
-  return { emoji: '🥤', color: PERSON_CYCLE[i % PERSON_CYCLE.length] };
-}
 
 /* ---------------------------- Zustand ---------------------------- */
 
-function defaultState() {
-  return migrate({
-    version: 2,
-    persons: [['Leo', 'blue'], ['Max', 'green'], ['Jonas', 'purple'], ['Gast 1', 'orange'], ['Gast 2', 'pink']]
-      .map(([name, color]) => ({ id: uid(), name, color, archived: false })),
-    drinks: [['Limo', 1.5, 12], ['Bier', 1.8, 20], ['Spezi', 1.8, 12]]
-      .map(([name, price, perCrate]) => ({ id: uid(), name, price, perCrate, archived: false })),
-    months: {},
-    payments: [],
-    purchases: [],
-    settings: { paypal: '', note: '' },
-  });
-}
-
-function isValidState(s) {
-  return !!s && Array.isArray(s.persons) && Array.isArray(s.drinks)
-    && !!s.months && typeof s.months === 'object';
-}
-
-/** Bringt ältere Datenstände (v1) auf den aktuellen Stand – nichts geht verloren. */
-function migrate(s) {
-  s.persons.forEach((p, i) => {
-    if (!COLORS[p.color]) p.color = PERSON_CYCLE[i % PERSON_CYCLE.length];
-    p.archived = !!p.archived;
-  });
-  s.drinks.forEach((d, i) => {
-    const guess = guessDrink(d.name, i);
-    if (!d.emoji) d.emoji = guess.emoji;
-    if (!COLORS[d.color]) d.color = guess.color;
-    if (typeof d.stock !== 'number') d.stock = null;
-    if (!(d.perCrate > 0)) d.perCrate = /bier/i.test(d.name) ? 20 : 12;
-    if (typeof d.crateCost !== 'number') d.crateCost = null;
-    if (typeof d.minStock !== 'number') d.minStock = null;
-    d.archived = !!d.archived;
-  });
-  s.payments = Array.isArray(s.payments) ? s.payments : [];
-  s.purchases = Array.isArray(s.purchases) ? s.purchases : [];
-  s.settings = { paypal: '', note: '', ...(s.settings || {}) };
-  // v1: „bezahlt“-Haken pro Monat → Zahlungen in Höhe des Monatsbetrags
-  for (const key of Object.keys(s.months).sort()) {
-    const m = s.months[key];
-    m.prices ||= {};
-    m.counts ||= {};
-    if (m.paid) {
-      for (const pid of Object.keys(m.paid)) {
-        if (!m.paid[pid]) continue;
-        const amount = charge(key, pid, s);
-        if (amount > 0) s.payments.push({ id: uid(), pid, month: key, amount, date: null });
-      }
-      delete m.paid;
-    }
-  }
-  s.version = 2;
-  return s;
-}
+const defaultState = () => Core.defaultState();
+const isValidState = (s) => Core.isValidState(s);
+const migrate = (s) => Core.migrate(s);
 
 let loadedNeedsSave = false;
 function loadState() {
@@ -199,7 +124,7 @@ function loadState() {
     try {
       const s = JSON.parse(raw);
       if (isValidState(s)) {
-        loadedNeedsSave = s.version !== 2;
+        loadedNeedsSave = s.version !== Core.VERSION;
         return migrate(s);
       }
     } catch (e) {
@@ -211,12 +136,13 @@ function loadState() {
   return defaultState();
 }
 
-function saveState() {
+function saveState({ fromSync = false } = {}) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     hud('Speichern fehlgeschlagen – bitte Sicherung exportieren', 'warn');
   }
+  if (!fromSync) window.Sync?.schedule();
 }
 
 function loadMeta() {
@@ -248,6 +174,10 @@ const ui = {
   editing: false,
   openWeeks: new Set(),
   sheet: null, // { kind, id }
+  theke: null, // { pid, flash }
+  payMethod: null,
+  cashCat: null,
+  allMoves: false,
 };
 
 /* ------------------------- Kalender-Helfer ------------------------ */
@@ -255,7 +185,6 @@ const ui = {
 const daysIn = (y, m) => new Date(y, m + 1, 0).getDate();
 const weekCount = (y, m) => Math.ceil(daysIn(y, m) / 7);
 const weekRange = (y, m, w) => `${(w - 1) * 7 + 1}.–${Math.min(w * 7, daysIn(y, m))}.`;
-const keyOf = (y, m) => `${y}-${String(m + 1).padStart(2, '0')}`;
 const monthKey = () => keyOf(ui.year, ui.month);
 const monthLabel = () => `${MONTH_NAMES[ui.month]} ${ui.year}`;
 const isThisMonth = () => {
@@ -270,37 +199,11 @@ const findPerson = (id) => state.persons.find((p) => p.id === id);
 const findDrink = (id) => state.drinks.find((d) => d.id === id);
 
 function getMonth(create = false) {
-  const k = monthKey();
-  let m = state.months[k];
-  if (!m && create) {
-    m = state.months[k] = { prices: {}, counts: {} };
-    state.drinks.filter((d) => !d.archived).forEach((d) => { m.prices[d.id] = d.price; });
-  }
-  return m;
+  return create ? Core.ensureMonth(state, monthKey()) : state.months[monthKey()];
 }
 
-const priceOf = (m, d) => (typeof m?.prices?.[d.id] === 'number' ? m.prices[d.id] : d.price);
-const count = (m, w, pid, did) => m?.counts?.[w]?.[pid]?.[did] || 0;
-
-function monthTotal(m, pid, did) {
-  let n = 0;
-  for (const w in (m?.counts || {})) n += m.counts[w]?.[pid]?.[did] || 0;
-  return n;
-}
 const drinkMonthQty = (m, did) => state.persons.reduce((s, p) => s + monthTotal(m, p.id, did), 0);
-
-function setCount(w, pid, did, value) {
-  const m = getMonth(true);
-  if (m.prices[did] === undefined) {
-    const d = findDrink(did);
-    if (d) m.prices[did] = d.price;
-  }
-  const week = (m.counts[w] ??= {});
-  const pc = (week[pid] ??= {});
-  if (value > 0) pc[did] = value; else delete pc[did];
-  if (!Object.keys(pc).length) delete week[pid];
-  if (!Object.keys(week).length) delete m.counts[w];
-}
+const setCount = (w, pid, did, value) => Core.setCount(state, monthKey(), w, pid, did, value);
 
 /** Gestrichene Flaschen zurück ins Lager buchen (beim Leeren). */
 function restock(counts) {
@@ -317,7 +220,8 @@ function usedAnywhere(kind, id) {
     kind === 'person'
       ? Object.keys(week[id] || {}).length > 0
       : Object.values(week).some((pc) => (pc[id] || 0) > 0)))
-    || (kind === 'person' && state.payments.some((x) => x.pid === id));
+    || (kind === 'person' && state.payments.some((x) => x.pid === id))
+    || (kind === 'drink' && state.purchases.some((x) => x.drinkId === id));
 }
 
 const visiblePersons = (m) => state.persons.filter((p) =>
@@ -329,41 +233,10 @@ const personWeekAmount = (m, w, pid, drinks) =>
   round2(drinks.reduce((s, d) => s + count(m, w, pid, d.id) * priceOf(m, d), 0));
 
 /** Betrag einer Person in einem Monat (alle Getränke). */
-function charge(key, pid, st = state) {
-  const m = st.months[key];
-  if (!m) return 0;
-  return round2(st.drinks.reduce((s, d) => s + monthTotal(m, pid, d.id) * priceOf(m, d), 0));
-}
-
-/**
- * Konto einer Person aus Sicht eines Monats. Zahlungen werden der Reihe nach
- * auf die ältesten offenen Monate angerechnet; Überschuss ist Guthaben.
- */
-function account(pid, key = monthKey()) {
-  let before = 0;
-  let all = 0;
-  for (const k of Object.keys(state.months)) {
-    const c = charge(k, pid);
-    all += c;
-    if (k < key) before += c;
-  }
-  const c = charge(key, pid);
-  const mine = state.payments.filter((x) => x.pid === pid);
-  const paid = mine.reduce((s, x) => s + x.amount, 0);
-  const paidThis = mine.filter((x) => x.month === key).reduce((s, x) => s + x.amount, 0);
-  const due = round2(Math.max(0, before + c - paid));
-  return {
-    charge: c,
-    carry: round2(Math.max(0, before - paid)),
-    covered: round2(Math.min(c, Math.max(0, paid - before))),
-    openThis: round2(c - Math.min(c, Math.max(0, paid - before))),
-    due,
-    credit: round2(Math.max(0, paid - all)),
-    paidThis: round2(paidThis),
-    settled: due < 0.005,
-    relevant: c > 0 || due > 0 || paidThis > 0,
-  };
-}
+const charge = (key, pid) => Core.charge(state, key, pid);
+/** Konto einer Person aus Sicht eines Monats (siehe core.js). */
+const account = (pid, key = monthKey()) => Core.account(state, pid, key);
+const isClosed = (key = monthKey()) => !!state.months[key]?.closed;
 
 const unitCost = (d) => (d.crateCost != null && d.perCrate > 0 ? d.crateCost / d.perCrate : null);
 const isLow = (d) => typeof d.stock === 'number' && d.minStock != null && d.stock <= d.minStock;
@@ -401,6 +274,7 @@ const els = {
   sheetTitle: $('#sheetTitle'),
   sheetBody: $('#sheetBody'),
   menuRoot: $('#menu-root'),
+  syncDot: $('#syncDot'),
   hud: $('#hud'),
 };
 
@@ -430,13 +304,15 @@ function render() {
   renderChrome();
   renderMain();
   renderSheet();
+  renderTheke();
   restoreFocus(sel);
   onScroll();
 }
 
 function renderChrome() {
-  const title = TABS[ui.tab];
+  const title = ui.tab === 'bestand' ? 'Kasse & Lager' : TABS[ui.tab];
   let sub = monthLabel();
+  if (isClosed() && (ui.tab === 'liste' || ui.tab === 'abrechnung')) sub += ' · abgeschlossen';
   if (ui.tab === 'einstellungen') sub = '';
   if (ui.tab === 'statistik') sub = String(ui.statsYear);
 
@@ -461,10 +337,13 @@ function renderChrome() {
       ? '' : '<button type="button" class="glass glass-btn text" data-nav="thisYear">Heute</button>';
     els.navTrailing.innerHTML = pair('prevYear', 'nextYear', 'Jahr wechseln');
   } else {
-    els.navLeading.innerHTML = isThisMonth()
-      ? '' : '<button type="button" class="glass glass-btn text" data-nav="today">Heute</button>';
+    els.navLeading.innerHTML = (isThisMonth()
+      ? '' : '<button type="button" class="glass glass-btn text" data-nav="today">Heute</button>')
+      + (ui.tab === 'liste' ? `<button type="button" class="glass glass-btn text with-icon" data-nav="theke">${icon('counter')}Theke</button>` : '');
     els.navTrailing.innerHTML = pair('prev', 'next', 'Monat wechseln');
   }
+  els.syncDot.hidden = !window.Sync?.configured();
+  els.syncDot.className = `sync-dot ${window.Sync?.status || ''}`;
 
   const low = state.drinks.some((d) => !d.archived && isLow(d));
   els.tabbar.querySelectorAll('[data-tab]').forEach((b) => {
@@ -534,7 +413,14 @@ function renderListe() {
       data-week="${w}" class="${w === tw ? 'today' : ''}">Woche ${w}</button>`;
   }
   seg += '</div></div>';
-  return `${backupBanner()}${seg}<div id="weekBody">${renderWeekBody()}</div>`;
+  const closed = isClosed() ? `<section class="list-section banner-section"><div class="list banner">
+      <div class="row">
+        <span class="tile" style="--c:${COLORS.gray}">${icon('lock')}</span>
+        <div class="row-text"><span class="title">${monthLabel()} ist abgeschlossen</span><span class="subtitle">Striche sind gesperrt.</span></div>
+      </div>
+      <div class="banner-actions"><button type="button" class="glass-btn text small" data-action="reopen-month">Wieder öffnen</button></div>
+    </div></section>` : '';
+  return `${backupBanner()}${closed}${seg}<div id="weekBody">${renderWeekBody()}</div>`;
 }
 
 function renderWeekBody() {
@@ -545,6 +431,7 @@ function renderWeekBody() {
     + (ui.week === todayWeek() ? ' · diese Woche' : '');
   let h = `<p class="seg-caption">${caption}</p>`;
   if (!persons.length || !drinks.length) return h + emptyState();
+  const locked = isClosed();
 
   h += '<div class="sections-grid">';
   for (const p of persons) {
@@ -560,10 +447,10 @@ function renderWeekBody() {
         <div class="row-text"><span class="title">${esc(d.name)}</span><span class="subtitle">${eur.format(priceOf(m, d))}</span></div>
         <span class="count${n ? '' : ' zero'}" data-count="${p.id}-${d.id}" aria-hidden="true">${n}</span>
         <div class="stepper" role="group" aria-label="${esc(d.name)} für ${esc(p.name)}: ${n}">
-          <button type="button" data-act="dec" data-p="${p.id}" data-d="${d.id}" ${n === 0 ? 'disabled' : ''}
+          <button type="button" data-act="dec" data-p="${p.id}" data-d="${d.id}" ${n === 0 || locked ? 'disabled' : ''}
             aria-label="Ein ${esc(d.name)} weniger für ${esc(p.name)}">${icon('minus')}</button>
           <span class="stepper-div" aria-hidden="true"></span>
-          <button type="button" data-act="inc" data-p="${p.id}" data-d="${d.id}"
+          <button type="button" data-act="inc" data-p="${p.id}" data-d="${d.id}" ${locked ? 'disabled' : ''}
             aria-label="Ein ${esc(d.name)} mehr für ${esc(p.name)}">${icon('plus')}</button>
         </div>
       </div>`;
@@ -590,6 +477,10 @@ function selectWeek(w) {
 }
 
 function tally(pid, did, delta) {
+  if (isClosed()) {
+    hud(`${monthLabel()} ist abgeschlossen`, 'lock');
+    return;
+  }
   const cur = count(getMonth(), ui.week, pid, did);
   const next = Math.max(0, cur + delta);
   if (next === cur) return;
@@ -636,6 +527,7 @@ function renderAbrechnung() {
   const carry = sum('carry');
   const totalQty = drinks.reduce((s, d) => s + drinkMonthQty(m, d.id), 0);
   const pct = total > 0 ? (covered / total) * 100 : 0;
+  const overdueList = Core.overdue(state);
 
   let h = `${backupBanner()}<div class="narrow">
     <section class="list-section"><div class="list summary">
@@ -735,6 +627,7 @@ function renderAbrechnung() {
       <h2 class="section-header">Teilen &amp; Drucken</h2>
       <div class="list icons">
         <button type="button" class="row action" data-action="share-all"><span class="row-icon">${icon('share')}</span>Abrechnung an alle senden</button>
+        ${overdueList.length ? `<button type="button" class="row action" data-action="remind"><span class="row-icon">${icon('bell')}</span><span class="row-text">Zahlungserinnerung senden</span><span class="badge-count">${overdueList.length}</span></button>` : ''}
         <button type="button" class="row action" data-print="filled"><span class="row-icon">${icon('printer')}</span>Abrechnung drucken</button>
         <button type="button" class="row action" data-print="blank"><span class="row-icon">${icon('doc')}</span>Leere Vorlage drucken</button>
         <button type="button" class="row action" data-action="csv"><span class="row-icon">${icon('download')}</span>Als CSV exportieren</button>
@@ -743,8 +636,14 @@ function renderAbrechnung() {
     </section>
     <section class="list-section">
       <div class="list icons">
-        <button type="button" class="row action destructive" data-action="clear-month"><span class="row-icon">${icon('trash')}</span>${monthLabel()} leeren</button>
+        ${isClosed()
+          ? `<button type="button" class="row action" data-action="reopen-month"><span class="row-icon">${icon('lockOpen')}</span>${monthLabel()} wieder öffnen</button>`
+          : `<button type="button" class="row action" data-action="close-month"><span class="row-icon">${icon('lock')}</span>${monthLabel()} abschließen</button>
+             <button type="button" class="row action destructive" data-action="clear-month"><span class="row-icon">${icon('trash')}</span>${monthLabel()} leeren</button>`}
       </div>
+      <p class="section-footer">${isClosed()
+        ? `Abgeschlossen am ${fmtDate(state.months[monthKey()].closed)} – Striche sind gesperrt, Zahlungen weiter möglich.`
+        : 'Nach der Abrechnung abschließen, damit niemand versehentlich alte Striche ändert.'}</p>
     </section>
   </div>`;
   return h;
@@ -757,9 +656,42 @@ function renderBestand() {
   if (!drinks.length) return emptyState();
   const key = monthKey();
   const m = getMonth();
+  const balance = Core.cashBalance(state);
+  const moves = Core.cashMovements(state);
 
+  // Kasse
   let h = `<div class="narrow">
     <section class="list-section">
+      <h2 class="section-header">Barkasse</h2>
+      <div class="list summary cash-card">
+        <span class="caption">Kassenstand</span>
+        <div class="big${balance < 0 ? ' red-text' : ''}">${eur.format(balance)}</div>
+        <div class="cash-actions">
+          <button type="button" class="pill-btn" data-cash="in">${icon('plus')}Einnahme</button>
+          <button type="button" class="pill-btn" data-cash="out">${icon('minus')}Ausgabe</button>
+          <button type="button" class="pill-btn" data-cash="adjust">${icon('coins')}Zählen</button>
+        </div>
+      </div>
+      <p class="section-footer">Barzahlungen, Einkäufe aus der Kasse und Leergut werden automatisch gebucht. „Zählen“ gleicht den Stand mit dem echten Bargeld ab.</p>
+    </section>`;
+
+  if (moves.length) {
+    h += `<section class="list-section">
+      <h2 class="section-header">Kassenbuch</h2>
+      <div class="list">${moves.slice(0, ui.allMoves ? 500 : 8).map((x) => `<div class="row" data-menu="move:${x.src}:${x.id}" tabindex="0"
+          aria-label="${esc(x.label)}, ${eur.format(x.amount)}, gedrückt halten zum Löschen">
+          <div class="row-text"><span class="title">${esc(x.label)}</span>
+            <span class="subtitle">${fmtDate(x.date)}${x.category ? ` · ${esc(x.category)}` : ''}</span></div>
+          <span class="amount ${x.amount > 0 ? 'green-text' : ''}">${x.amount > 0 ? '+ ' : '− '}${eur.format(Math.abs(x.amount))}</span>
+        </div>`).join('')}
+        ${moves.length > 8 && !ui.allMoves ? `<button type="button" class="row action" data-action="all-moves"><span class="row-text">Alle ${moves.length} Buchungen anzeigen</span>${icon('chevronRight', 'chev')}</button>` : ''}
+      </div>
+      <p class="section-footer">Gedrückt halten, um eine Buchung zu löschen.</p>
+    </section>`;
+  }
+
+  // Lager
+  h += `<section class="list-section">
       <h2 class="section-header">Lager</h2>
       <div class="list tiles">`;
   for (const d of drinks) {
@@ -777,9 +709,28 @@ function renderBestand() {
         ${tracked ? `<button type="button" class="pill-btn" data-buy="${d.id}" aria-label="Eine Kiste ${esc(d.name)} eingekauft">${icon('plus')}Kiste</button>` : ''}
       </div>`;
   }
-  h += `</div><p class="section-footer">Jeder Strich zieht eine Flasche vom Bestand ab. „+ Kiste“ bucht einen Einkauf. Gedrückt halten für mehr.</p></section>`;
+  h += `</div><p class="section-footer">Jeder Strich zieht eine Flasche ab, „+ Kiste“ bucht einen Einkauf${state.settings.purchasesFromCash ? ' aus der Barkasse' : ''}. Getränk antippen für Kistenpreis, Pfand und Warnung.</p></section>`;
 
-  // Kasse
+  // Pfand
+  const dep = Core.deposits(state);
+  const depRows = dep.rows.filter((r) => !r.drink.archived || r.crates);
+  h += `<section class="list-section">
+      <h2 class="section-header">Pfand &amp; Leergut</h2>
+      <div class="list tiles">${depRows.length ? depRows.map((r) => `<div class="row">
+          ${drinkTile(r.drink)}
+          <div class="row-text"><span class="title">${esc(r.drink.name)}</span>
+            <span class="subtitle">${plural(r.crates, 'Kiste', 'Kisten')} offen</span></div>
+          <span class="amount">${eur.format(r.value)}</span>
+          <button type="button" class="pill-btn" data-empties="${r.drink.id}" ${r.crates > 0 ? '' : 'disabled'}
+            aria-label="Eine Kiste ${esc(r.drink.name)} Leergut zurückgebracht">${icon('recycle')}Zurück</button>
+        </div>`).join('') : '<div class="row"><span class="row-text"><span class="subtitle">Noch kein Pfand erfasst</span></span></div>'}
+      </div>
+      <p class="section-footer">${depRows.length
+        ? `Offenes Pfand insgesamt: <b>${eur.format(dep.total)}</b>. „Zurück“ bucht eine Kiste Leergut samt Pfand zurück in die Kasse.`
+        : 'Trage beim Getränk (antippen) das Pfand pro Kiste ein – dann wird es beim Einkauf mitgebucht.'}</p>
+    </section>`;
+
+  // Gewinn im Monat
   let revenue = 0;
   let cost = 0;
   let profit = 0;
@@ -804,34 +755,17 @@ function renderBestand() {
   const crates = monthPurchases.reduce((s, x) => s + (x.crates || 0), 0);
 
   h += `<section class="list-section">
-      <h2 class="section-header">Kasse · ${monthLabel()}</h2>
+      <h2 class="section-header">Gewinn · ${monthLabel()}</h2>
       <div class="list">
         <div class="row"><div class="row-text"><span class="title">Einnahmen</span><span class="subtitle">Alle Striche im Monat</span></div><span class="amount">${eur.format(round2(revenue))}</span></div>
         <div class="row"><div class="row-text"><span class="title">Wareneinsatz</span><span class="subtitle">Einkaufspreis der getrunkenen Flaschen</span></div><span class="amount">${cost ? `− ${eur.format(round2(cost))}` : '–'}</span></div>
         <div class="row"><div class="row-text"><span class="title"><b>Gewinn</b></span></div><span class="amount ${profit > 0 ? 'green-text' : ''}"><b>${cost ? eur.format(round2(profit)) : '–'}</b></span></div>
-        <div class="row"><div class="row-text"><span class="title">Eingekauft</span><span class="subtitle">${plural(crates, 'Kiste', 'Kisten')} im ${MONTH_NAMES[ui.month]}</span></div><span class="amount">${spent ? eur.format(round2(spent)) : '–'}</span></div>
+        <div class="row"><div class="row-text"><span class="title">Eingekauft</span><span class="subtitle">${plural(crates, 'Kiste', 'Kisten')} im ${MONTH_NAMES[ui.month]}, ohne Pfand</span></div><span class="amount">${spent ? eur.format(round2(spent)) : '–'}</span></div>
       </div>
       <p class="section-footer">${missing.length
         ? `Ohne ${esc(missing.join(', '))} – dort fehlt noch der Kistenpreis (Getränk antippen).`
-        : 'Gewinn = Verkaufspreis minus Einkaufspreis je Flasche.'}</p>
+        : 'Gewinn = Verkaufspreis minus Einkaufspreis je Flasche. Pfand zählt nicht als Kosten.'}</p>
     </section>`;
-
-  const recent = [...state.purchases].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
-  if (recent.length) {
-    h += `<section class="list-section">
-        <h2 class="section-header">Letzte Einkäufe</h2>
-        <div class="list tiles">${recent.map((x) => {
-          const d = findDrink(x.drinkId) || { name: 'Gelöscht', emoji: '❔', color: 'gray' };
-          return `<div class="row" data-menu="purchase:${x.id}" tabindex="0" aria-label="${esc(d.name)}, ${fmtDate(x.date)}, gedrückt halten zum Löschen">
-              ${drinkTile(d)}
-              <div class="row-text"><span class="title">${x.crates ? plural(x.crates, 'Kiste', 'Kisten') : plural(x.bottles, 'Flasche', 'Flaschen')} ${esc(d.name)}</span>
-                <span class="subtitle">${fmtDate(x.date)} · ${x.bottles} Fl.</span></div>
-              <span class="trailing">${x.cost != null ? eur.format(x.cost) : ''}</span>
-            </div>`;
-        }).join('')}</div>
-        <p class="section-footer">Gedrückt halten, um einen Einkauf zu löschen.</p>
-      </section>`;
-  }
   return h + '</div>';
 }
 
@@ -844,10 +778,35 @@ function buyCrate(did, crates = 1) {
   state.purchases.push({
     id: uid(), drinkId: d.id, date: new Date().toISOString(), crates, bottles,
     cost: d.crateCost != null ? round2(d.crateCost * crates) : null,
+    deposit: d.crateDeposit != null ? round2(d.crateDeposit * crates) : 0,
+    fromCash: !!state.settings.purchasesFromCash,
   });
   saveState();
   render();
   hud(`+1 Kiste ${d.name} · ${d.stock} Fl.`, 'cart', { undo: true });
+}
+
+function returnEmpty(did) {
+  const d = findDrink(did);
+  const open = Core.deposits(state).rows.find((r) => r.drink.id === did);
+  if (!d || !open || open.crates <= 0) return;
+  checkpoint();
+  const refund = d.crateDeposit != null ? d.crateDeposit : round2(open.value / open.crates);
+  state.empties.push({ id: uid(), drinkId: did, date: new Date().toISOString(), crates: 1, refund });
+  saveState();
+  render();
+  hud(`Leergut ${d.name} · + ${eur.format(refund)} in die Kasse`, 'recycle', { undo: true });
+}
+
+function deleteMovement(src, id) {
+  if (src === 'purchase') return deletePurchase(id);
+  checkpoint();
+  if (src === 'cash') state.cash = state.cash.filter((x) => x.id !== id);
+  else if (src === 'payment') state.payments = state.payments.filter((x) => x.id !== id);
+  else if (src === 'empties') state.empties = state.empties.filter((x) => x.id !== id);
+  saveState();
+  render();
+  hud('Buchung gelöscht', 'trash', { undo: true });
 }
 
 /* ----- Statistik ----- */
@@ -1087,6 +1046,18 @@ function renderEinstellungen() {
     </section>
 
     <section class="list-section">
+      <h2 class="section-header">Kasse</h2>
+      <div class="list">
+        <div class="row edit"><span class="row-text"><span class="title">Standard-Zahlart</span><span class="subtitle">Für den Bezahlt-Kreis</span></span></div>
+        <div class="row">${segmented('data-default-method', METHODS, state.settings.defaultMethod, 'Standard-Zahlart')}</div>
+        <label class="row edit"><span class="row-text"><span class="title">Einkäufe aus der Barkasse</span><span class="subtitle">„+ Kiste“ bucht Kosten und Pfand ab</span></span>
+          <input type="checkbox" class="switch" data-setting="purchasesFromCash" ${state.settings.purchasesFromCash ? 'checked' : ''}></label>
+      </div>
+    </section>
+
+    ${syncSection()}
+
+    <section class="list-section">
       <h2 class="section-header">Datensicherung</h2>
       <div class="list icons">
         <button type="button" class="row action" data-action="export"><span class="row-icon">${icon('share')}</span>Sicherung teilen / speichern</button>
@@ -1154,7 +1125,40 @@ function sheetContent({ kind, id }) {
   if (kind === 'stock') return stockSheet(id);
   if (kind === 'styleDrink') return styleDrinkSheet(id);
   if (kind === 'stylePerson') return stylePersonSheet(id);
+  if (kind === 'cash') return cashSheet(id);
   return null;
+}
+
+const segmented = (attr, options, selected, label) =>
+  `<div class="mini-seg" role="radiogroup" aria-label="${label}">${Object.entries(options).map(([k, v]) =>
+    `<button type="button" role="radio" aria-checked="${k === selected}" class="${k === selected ? 'on' : ''}" ${attr}="${k}">${v}</button>`).join('')}</div>`;
+
+function cashSheet(kind) {
+  const balance = Core.cashBalance(state);
+  const titles = { in: 'Einnahme', out: 'Ausgabe', adjust: 'Kasse zählen' };
+  const cats = kind === 'out' ? ['Einkauf', 'Snacks', 'Deko', 'Sonstiges'] : ['Einlage', 'Spende', 'Sonstiges'];
+  return {
+    title: titles[kind],
+    body: `<div class="sheet-hero"><span class="tile xl" style="--c:${kind === 'out' ? COLORS.red : kind === 'in' ? COLORS.green : COLORS.blue}">${icon(kind === 'adjust' ? 'coins' : kind === 'in' ? 'plus' : 'minus')}</span>
+        <span class="subtitle">Kassenstand laut App: ${eur.format(balance)}</span></div>
+      <form data-form="cash" data-kind="${kind}">
+        <section class="list-section">
+          <div class="list">
+            <label class="row edit"><span class="field-label">${kind === 'adjust' ? 'Gezählt' : 'Betrag'}</span>
+              <span class="price-wrap grow"><input class="field price wide" name="amount" inputmode="decimal" autocomplete="off" placeholder="0,00" required
+                aria-label="${kind === 'adjust' ? 'Gezähltes Bargeld' : 'Betrag'} in Euro"><span class="unit">€</span></span></label>
+            ${kind === 'adjust' ? '' : `<label class="row edit"><span class="field-label">Notiz</span>
+              <input class="field" name="note" maxlength="60" autocomplete="off" placeholder="${kind === 'out' ? 'z. B. Chips für Samstag' : 'z. B. Anfangsbestand'}"></label>`}
+          </div>
+          ${kind === 'adjust' ? '<p class="section-footer">Zähl das Bargeld in der Kasse und trag den Betrag ein. Die Differenz wird als Korrektur gebucht.</p>' : ''}
+        </section>
+        ${kind === 'adjust' ? '' : `<section class="list-section">
+          <h2 class="section-header">Kategorie</h2>
+          <div class="list pad">${segmented('data-cash-cat', Object.fromEntries(cats.map((c) => [c, c])), ui.cashCat && cats.includes(ui.cashCat) ? ui.cashCat : cats[0], 'Kategorie')}</div>
+        </section>`}
+        <div class="sheet-actions"><button class="glass-btn text prominent wide">${kind === 'adjust' ? 'Abgleichen' : 'Buchen'}</button></div>
+      </form>`,
+  };
 }
 
 function personSheet(pid) {
@@ -1201,19 +1205,21 @@ function personSheet(pid) {
               value="${a.due > 0 ? num.format(a.due) : ''}" placeholder="0,00" aria-label="Betrag in Euro" required><span class="unit">€</span></span>
             <button class="glass-btn text small prominent">Buchen</button>
           </div>
+          <div class="row">${segmented('data-pay-method', METHODS, ui.payMethod || state.settings.defaultMethod, 'Zahlart')}</div>
         </form>
-        <p class="section-footer">Teilzahlungen sind möglich. Wer mehr zahlt, bekommt Guthaben für die nächsten Monate.</p>
+        <p class="section-footer">Teilzahlungen sind möglich. Wer mehr zahlt, bekommt Guthaben für die nächsten Monate. Barzahlungen landen im Kassenbuch.</p>
       </section>
       <section class="list-section">
         <div class="list icons">
           <button type="button" class="row action" data-share-person="${pid}"><span class="row-icon">${icon('share')}</span>Abrechnung an ${esc(p.name)} senden</button>
+          <button type="button" class="row action" data-share-image="${pid}"><span class="row-icon">${icon('image')}</span>Als Bild senden</button>
         </div>
       </section>
       <section class="list-section">
         <h2 class="section-header">Zahlungen</h2>
         <div class="list">${payments.length ? payments.slice(0, 24).map((x) => `<div class="row">
             <span class="row-text"><span class="title">${eur.format(x.amount)}</span>
-              <span class="subtitle">${x.date ? `${fmtDate(x.date)} · ` : ''}gebucht im ${monthLabelOf(x.month)}</span></span>
+              <span class="subtitle">${x.date ? `${fmtDate(x.date)} · ` : ''}${METHODS[x.method] || 'Bar'} · im ${monthLabelOf(x.month)}</span></span>
             <button type="button" class="icon-btn danger" data-del-payment="${x.id}" aria-label="Zahlung über ${eur.format(x.amount)} löschen">${icon('trash')}</button>
           </div>`).join('') : '<div class="row"><span class="row-text"><span class="subtitle">Noch keine Zahlungen</span></span></div>'}</div>
       </section>`,
@@ -1250,6 +1256,9 @@ function stockSheet(did) {
           <label class="row edit"><span class="row-text"><span class="title">Preis pro Kiste</span></span>
             <span class="price-wrap"><input class="field price" data-crate-cost="${d.id}" value="${d.crateCost != null ? num.format(d.crateCost) : ''}"
               placeholder="0,00" inputmode="decimal" autocomplete="off" aria-label="Einkaufspreis pro Kiste in Euro"><span class="unit">€</span></span></label>
+          <label class="row edit"><span class="row-text"><span class="title">Pfand pro Kiste</span></span>
+            <span class="price-wrap"><input class="field price" data-crate-deposit="${d.id}" value="${d.crateDeposit != null ? num.format(d.crateDeposit) : ''}"
+              placeholder="0,00" inputmode="decimal" autocomplete="off" aria-label="Pfand pro Kiste in Euro"><span class="unit">€</span></span></label>
           <label class="row edit"><span class="row-text"><span class="title">Warnen ab</span></span>
             <span class="price-wrap"><input class="field num" data-min-stock="${d.id}" value="${d.minStock ?? ''}" placeholder="–"
               inputmode="numeric" autocomplete="off" aria-label="Warnen ab Flaschen"><span class="unit">Fl.</span></span></label>
@@ -1301,7 +1310,10 @@ function stylePersonSheet(pid) {
 /* --------------------------- Kontextmenü --------------------------- */
 
 function menuItems(spec) {
-  const [kind, id] = spec.split(':');
+  const [kind, id, extra] = spec.split(':');
+  if (kind === 'move') {
+    return [{ label: 'Buchung löschen', icon: 'trash', role: 'destructive', run: () => deleteMovement(id, extra) }];
+  }
   if (kind === 'week') {
     const p = findPerson(id);
     return p && [
@@ -1315,6 +1327,7 @@ function menuItems(spec) {
       { label: 'Details & Zahlungen', icon: 'person', run: () => openSheet('person', id) },
       { label: 'Teilzahlung erfassen', icon: 'wallet', run: () => openSheet('person', id, '[name="amount"]') },
       { label: 'Abrechnung senden', icon: 'share', run: () => sharePerson(id) },
+      { label: 'Als Bild senden', icon: 'image', run: () => shareImage(id) },
       a.relevant && !a.settled && { label: `Bezahlt (${eur.format(a.due)})`, icon: 'check', run: () => togglePaid(id) },
     ].filter(Boolean);
   }
@@ -1433,6 +1446,124 @@ document.addEventListener('contextmenu', (e) => {
   cancelLp();
   openMenu(t, e.clientX || 0, e.clientY || 0);
 });
+
+/* ------------------------------ Theke ------------------------------ */
+/* Schnelles Eintragen bei Feiern: Person antippen, dann Getränk. */
+
+let thekePrevFocus = null;
+
+function openTheke() {
+  const d = new Date();
+  ui.year = d.getFullYear();
+  ui.month = d.getMonth();
+  ui.week = Math.ceil(d.getDate() / 7);
+  ui.theke = { pid: null, flash: null };
+  thekePrevFocus = document.activeElement;
+  render();
+}
+
+function closeTheke() {
+  ui.theke = null;
+  render();
+  if (thekePrevFocus && document.contains(thekePrevFocus)) thekePrevFocus.focus({ preventScroll: true });
+}
+
+function renderTheke() {
+  let root = $('#theke-root');
+  if (!ui.theke) {
+    if (root) root.remove();
+    document.body.classList.remove('theke-open');
+    return;
+  }
+  const first = !root;
+  if (first) {
+    root = document.createElement('div');
+    root.id = 'theke-root';
+    root.className = 'theke';
+    root.setAttribute('role', 'dialog');
+    root.setAttribute('aria-modal', 'true');
+    root.setAttribute('aria-label', 'Theke');
+    document.body.appendChild(root);
+    root.addEventListener('click', onThekeClick);
+    document.body.classList.add('theke-open');
+  }
+  const m = getMonth();
+  const persons = state.persons.filter((p) => !p.archived);
+  const drinks = state.drinks.filter((d) => !d.archived);
+  const closed = isClosed();
+  const sel = ui.theke.pid && findPerson(ui.theke.pid);
+  const dateStr = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  root.innerHTML = `
+    <header class="theke-head">
+      <div><h1>Theke</h1><p>${dateStr} · Woche ${ui.week}</p></div>
+      <button type="button" class="glass-btn text prominent" data-theke-close>Fertig</button>
+    </header>
+    ${closed ? `<p class="theke-closed">${icon('lock', 'inline')} ${monthLabel()} ist abgeschlossen – Striche sind gesperrt.</p>` : ''}
+    <div class="theke-grid">
+      ${persons.map((p) => {
+        const n = drinks.reduce((s, d) => s + count(m, ui.week, p.id, d.id), 0);
+        return `<button type="button" class="theke-person${ui.theke.flash === p.id ? ' flash' : ''}" data-theke-person="${p.id}" ${closed ? 'disabled' : ''}>
+          ${avatar(p, 'xl')}<span class="name">${esc(p.name)}</span>
+          <span class="sub">${n ? `${plural(n, 'Getränk', 'Getränke')} diese Woche` : 'diese Woche nichts'}</span></button>`;
+      }).join('')}
+      <button type="button" class="theke-person add" data-theke-guest ${closed ? 'disabled' : ''}>
+        <span class="avatar xl add-avatar">${icon('plus')}</span><span class="name">Gast</span><span class="sub">hinzufügen</span></button>
+    </div>
+    ${sel ? `<div class="theke-picker-backdrop" data-theke-cancel></div>
+      <div class="theke-picker" role="dialog" aria-label="Getränk für ${esc(sel.name)}">
+        <div class="picker-head">${avatar(sel)}<h2>${esc(sel.name)}</h2>
+          <button type="button" class="glass glass-btn" data-theke-cancel aria-label="Abbrechen">${icon('xmark')}</button></div>
+        <div class="drink-grid">${drinks.map((d) => `<button type="button" class="theke-drink" data-theke-drink="${d.id}">
+          ${drinkTile(d, 'xl')}<span class="name">${esc(d.name)}</span><span class="sub">${eur.format(priceOf(m, d))}</span></button>`).join('')}</div>
+      </div>` : ''}`;
+
+  if (sel) root.querySelector('[data-theke-drink]')?.focus({ preventScroll: true });
+  else if (first) root.querySelector('[data-theke-person], [data-theke-close]')?.focus({ preventScroll: true });
+}
+
+async function onThekeClick(e) {
+  const t = e.target.closest('[data-theke-close], [data-theke-cancel], [data-theke-person], [data-theke-drink], [data-theke-guest]');
+  if (!t || t.disabled) return;
+  const ds = t.dataset;
+  if ('thekeClose' in ds) closeTheke();
+  else if ('thekeCancel' in ds) {
+    const pid = ui.theke.pid;
+    ui.theke.pid = null;
+    renderTheke();
+    $(`#theke-root [data-theke-person="${pid}"]`)?.focus({ preventScroll: true });
+  } else if (ds.thekePerson) {
+    ui.theke.pid = ds.thekePerson;
+    renderTheke();
+  } else if (ds.thekeDrink) {
+    const pid = ui.theke.pid;
+    ui.theke.pid = null;
+    ui.theke.flash = pid;
+    tally(pid, ds.thekeDrink, 1);
+    renderTheke();
+    $(`#theke-root [data-theke-person="${pid}"]`)?.focus({ preventScroll: true });
+    setTimeout(() => {
+      if (ui.theke?.flash === pid) {
+        ui.theke.flash = null;
+        $(`#theke-root [data-theke-person="${pid}"]`)?.classList.remove('flash');
+      }
+    }, 900);
+  } else if ('thekeGuest' in ds) {
+    const r = await iosAlert({
+      title: 'Gast hinzufügen',
+      message: 'Der Gast erscheint auch in der Strichliste und Abrechnung.',
+      input: { placeholder: 'Name', label: 'Name des Gasts' },
+      actions: [{ label: 'Abbrechen', role: 'cancel', value: false }, { label: 'Hinzufügen', role: 'default', value: true }],
+    });
+    if (!r?.value || !r.text) return;
+    checkpoint();
+    const p = { id: uid(), name: r.text, color: PERSON_CYCLE[state.persons.length % PERSON_CYCLE.length], archived: false };
+    state.persons.push(p);
+    saveState();
+    ui.theke.pid = p.id;
+    render();
+  }
+}
 
 /* ------------------------------ Druck ----------------------------- */
 
@@ -1569,6 +1700,180 @@ function allText() {
 
 const sharePerson = (pid) => shareText(personText(pid), `Abrechnung ${monthLabel()}`);
 
+function reminderText() {
+  const list = Core.overdue(state);
+  const lines = ['🍺 Zirbenstube – kleine Erinnerung', '', 'Folgende Beträge sind noch offen:'];
+  for (const x of list) lines.push(`• ${x.person.name}: ${eur.format(x.due)} (seit ${monthLabelOf(x.since)})`);
+  const link = paypalLink(0);
+  lines.push('');
+  if (link) lines.push(`PayPal: ${link}`);
+  if (state.settings.note.trim()) lines.push(state.settings.note.trim());
+  lines.push('Danke! 🍻');
+  return lines.join('\n');
+}
+
+/* ----- Abrechnung als Bild (Canvas, ohne Bibliothek) ----- */
+
+async function billImage(pid) {
+  const p = findPerson(pid);
+  const key = monthKey();
+  const m = getMonth();
+  const a = account(pid, key);
+  const drinks = state.drinks.filter((d) => monthTotal(m, pid, d.id) > 0);
+  const link = a.due > 0 ? paypalLink(a.due) : '';
+  const W = 1080;
+  const pad = 96;
+  const rowH = 96;
+  const lines = [];
+  for (const d of drinks) {
+    const n = monthTotal(m, pid, d.id);
+    lines.push({ emoji: d.emoji, text: `${n}× ${d.name}`, sub: `je ${eur.format(priceOf(m, d))}`, amount: eur.format(n * priceOf(m, d)) });
+  }
+  if (!lines.length) lines.push({ emoji: '🫗', text: 'Keine Getränke', sub: '', amount: eur.format(0) });
+  const extra = [];
+  if (a.carry > 0) extra.push(['Offen aus Vormonaten', `+ ${eur.format(a.carry)}`]);
+  if (a.covered > 0) extra.push(['Schon bezahlt', `− ${eur.format(a.covered)}`]);
+  const H = 300 + 190 + lines.length * rowH + 40 + (extra.length + 1) * 64 + 200 + (link ? 80 : 0) + 140;
+
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  const font = (w, size) => `${w} ${size}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+
+  g.fillStyle = '#f2f2f7';
+  g.fillRect(0, 0, W, H);
+  const grad = g.createLinearGradient(0, 0, 0, 420);
+  grad.addColorStop(0, '#ffb340');
+  grad.addColorStop(1, '#e86a00');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, W, 420);
+  g.fillStyle = '#fff';
+  g.font = font(800, 72);
+  g.fillText('🍺 Zirbenstube', pad - 20, 150);
+  g.font = font(500, 40);
+  g.globalAlpha = 0.92;
+  g.fillText(`Abrechnung ${monthLabel()}`, pad - 20, 215);
+  g.globalAlpha = 1;
+
+  // Karte
+  const top = 300;
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.12)';
+  g.shadowBlur = 40;
+  g.shadowOffsetY = 12;
+  g.fillStyle = '#fff';
+  rr(48, top, W - 96, H - top - 120, 56);
+  g.fill();
+  g.restore();
+
+  // Person
+  const col = COLORS[p.color] || COLORS.gray;
+  g.fillStyle = col;
+  g.beginPath();
+  g.arc(pad + 52, top + 100, 52, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = fgFor(col);
+  g.font = font(700, 44);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(initials(p.name), pad + 52, top + 102);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = '#000';
+  g.font = font(700, 56);
+  g.fillText(p.name, pad + 132, top + 120);
+
+  let y = top + 190;
+  const right = (text, yy, f, color = '#000') => {
+    g.font = f;
+    g.fillStyle = color;
+    g.textAlign = 'right';
+    g.fillText(text, W - pad, yy);
+    g.textAlign = 'left';
+  };
+  const hair = (yy) => {
+    g.fillStyle = 'rgba(60,60,67,.18)';
+    g.fillRect(pad, yy, W - pad * 2, 2);
+  };
+  for (const l of lines) {
+    g.font = font(400, 52);
+    g.fillText(l.emoji, pad, y + 58);
+    g.fillStyle = '#000';
+    g.font = font(500, 42);
+    g.fillText(l.text, pad + 86, y + 44);
+    g.fillStyle = 'rgba(60,60,67,.6)';
+    g.font = font(400, 32);
+    g.fillText(l.sub, pad + 86, y + 84);
+    right(l.amount, y + 58, font(500, 42));
+    y += rowH;
+    hair(y - 4);
+  }
+  y += 40;
+  const sumRow = (label, value, color = '#000', weight = 400) => {
+    g.fillStyle = color;
+    g.font = font(weight, 38);
+    g.fillText(label, pad, y + 40);
+    right(value, y + 40, font(weight, 38), color);
+    y += 64;
+  };
+  sumRow(`Summe ${MONTH_NAMES[ui.month]}`, eur.format(a.charge));
+  for (const [l, v] of extra) sumRow(l, v, 'rgba(60,60,67,.75)');
+
+  // Ergebnis
+  y += 24;
+  const settled = a.due <= 0;
+  g.fillStyle = settled ? '#e8f8ec' : '#fff1e0';
+  rr(pad - 24, y, W - (pad - 24) * 2, 150, 36);
+  g.fill();
+  g.fillStyle = settled ? '#248a3d' : '#c25e00';
+  g.font = font(600, 40);
+  g.fillText(settled ? '✅ Alles bezahlt' : 'Zu zahlen', pad + 8, y + 90);
+  right(settled ? (a.credit > 0 ? `Guthaben ${eur.format(a.credit)}` : 'Danke!') : eur.format(a.due),
+    y + 96, font(800, settled ? 44 : 64), settled ? '#248a3d' : '#c25e00');
+  y += 190;
+  if (link) {
+    g.fillStyle = 'rgba(60,60,67,.75)';
+    g.font = font(500, 34);
+    g.fillText(link.replace('https://', ''), pad, y + 10);
+  }
+  g.fillStyle = 'rgba(60,60,67,.6)';
+  g.font = font(500, 36);
+  g.textAlign = 'center';
+  g.fillText('Prost! 🍻', W / 2, H - 50);
+  return new Promise((res) => c.toBlob(res, 'image/png'));
+}
+
+async function shareImage(pid) {
+  const p = findPerson(pid);
+  let blob;
+  try {
+    blob = await billImage(pid);
+  } catch (e) {
+    console.error(e);
+    hud('Bild konnte nicht erstellt werden', 'warn');
+    return;
+  }
+  const name = `zirbenstube-${p.name.toLowerCase().replace(/[^a-z0-9äöüß]+/g, '-')}-${monthKey()}.png`;
+  const file = new File([blob], name, { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: `Abrechnung ${monthLabel()}` });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  hud('Bild gespeichert', 'image');
+}
+
 function exportCsv() {
   const key = monthKey();
   const m = getMonth();
@@ -1633,7 +1938,7 @@ els.hud.addEventListener('click', (e) => {
 });
 
 /** Alert im iOS-Stil. Gibt den `value` der gewählten Aktion zurück. */
-function iosAlert({ title, message = '', actions }) {
+function iosAlert({ title, message = '', actions, input }) {
   return new Promise((resolve) => {
     const root = $('#alert-root');
     const prevFocus = document.activeElement;
@@ -1641,18 +1946,22 @@ function iosAlert({ title, message = '', actions }) {
       <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="alertTitle" ${message ? 'aria-describedby="alertMsg"' : ''}>
         <h2 id="alertTitle">${esc(title)}</h2>
         ${message ? `<p id="alertMsg">${esc(message).replace(/\n/g, '<br>')}</p>` : ''}
+        ${input ? `<input class="alert-input" type="text" maxlength="40" autocomplete="off" placeholder="${esc(input.placeholder || '')}" aria-label="${esc(input.label || title)}">` : ''}
         <div class="alert-actions">${actions.map((a, i) =>
           `<button type="button" class="alert-btn ${a.role || ''}" data-i="${i}">${esc(a.label)}</button>`).join('')}</div>
       </div></div>`;
     root.classList.add('open');
     const buttons = [...root.querySelectorAll('.alert-btn')];
+    const field = root.querySelector('.alert-input');
+    const focusables = field ? [field, ...buttons] : buttons;
 
     const close = (value) => {
+      const text = field ? field.value.trim() : '';
       document.removeEventListener('keydown', onKey, true);
       root.classList.remove('open');
       root.innerHTML = '';
       if (prevFocus && document.contains(prevFocus)) prevFocus.focus({ preventScroll: true });
-      resolve(value);
+      resolve(input ? { value, text } : value);
     };
     const onKey = (e) => {
       if (e.key === 'Escape') {
@@ -1661,13 +1970,16 @@ function iosAlert({ title, message = '', actions }) {
         close(actions.find((a) => a.role === 'cancel')?.value ?? null);
       } else if (e.key === 'Tab') {
         e.preventDefault();
-        const i = buttons.indexOf(document.activeElement);
-        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+        const i = focusables.indexOf(document.activeElement);
+        focusables[(i + (e.shiftKey ? -1 : 1) + focusables.length) % focusables.length].focus();
+      } else if (e.key === 'Enter' && e.target === field) {
+        e.preventDefault();
+        close(actions.find((a) => a.role !== 'cancel')?.value ?? true);
       }
     };
     buttons.forEach((b) => b.addEventListener('click', () => close(actions[b.dataset.i].value)));
     document.addEventListener('keydown', onKey, true);
-    (root.querySelector('.alert-btn.cancel') || buttons[0]).focus();
+    (field || root.querySelector('.alert-btn.cancel') || buttons[0]).focus();
   });
 }
 
@@ -1740,7 +2052,7 @@ function togglePaid(pid) {
   if (!a.relevant) return;
   if (!a.settled) {
     checkpoint();
-    state.payments.push({ id: uid(), pid, month: key, amount: a.due, date: new Date().toISOString() });
+    state.payments.push({ id: uid(), pid, month: key, amount: a.due, date: new Date().toISOString(), method: state.settings.defaultMethod || 'bar' });
     saveState();
     render();
     hud(`${p.name} hat ${eur.format(a.due)} bezahlt`, 'check', { undo: true });
@@ -1838,6 +2150,151 @@ const endSwipe = () => {
 document.addEventListener('pointerup', endSwipe);
 document.addEventListener('pointercancel', endSwipe);
 
+
+/* ----- Gemeinsam nutzen (Sync) ----- */
+
+function syncStatusText() {
+  const S = window.Sync;
+  if (S.status === 'busy') return ['Wird abgeglichen …', 'muted'];
+  if (S.status === 'offline') return ['Offline – wird später abgeglichen', 'orange-text'];
+  if (S.status === 'error') return [`Fehler: ${S.lastError}`, 'red-text'];
+  if (!S.lastSync) return ['Verbunden', 'green-text'];
+  const sec = Math.round((Date.now() - S.lastSync) / 1000);
+  return [`Abgeglichen ${sec < 60 ? 'gerade eben' : `vor ${Math.round(sec / 60)} Min.`}`, 'green-text'];
+}
+
+function syncSection() {
+  const S = window.Sync;
+  if (!S) return '';
+  if (!S.configured()) {
+    const d = ui.syncDraft || {};
+    return `<section class="list-section">
+      <h2 class="section-header">Gemeinsam nutzen</h2>
+      <div class="list">
+        <label class="row edit"><span class="field-label">Projekt-URL</span>
+          <input class="field" data-sync-field="url" value="${esc(d.url || '')}" placeholder="https://xyz.supabase.co" inputmode="url"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <label class="row edit"><span class="field-label">Anon-Key</span>
+          <input class="field" data-sync-field="key" value="${esc(d.key || '')}" placeholder="eyJhbGciOi…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      </div>
+      <div class="list icons gap-top">
+        <button type="button" class="row action" data-action="sync-create"><span class="row-icon">${icon('share')}</span>Gemeinsame Liste erstellen</button>
+      </div>
+      <p class="section-footer">Damit alle auf dem eigenen Handy eintragen können: kostenloses Supabase-Projekt anlegen, <b>supabase.sql</b> ausführen, URL und Anon-Key hier eintragen (Anleitung in der README). Wer einen Einladungslink bekommt, muss hier nichts eintragen.</p>
+    </section>`;
+  }
+  const [text, cls] = syncStatusText();
+  return `<section class="list-section">
+      <h2 class="section-header">Gemeinsam nutzen</h2>
+      <div class="list icons">
+        <div class="row"><span class="row-icon"><span class="sync-dot ${S.status}"></span></span>
+          <span class="row-text"><span class="title">Gemeinsame Liste aktiv</span><span class="subtitle ${cls}" id="syncStatusText">${esc(text)}</span></span></div>
+        <button type="button" class="row action" data-action="sync-now"><span class="row-icon">${icon('undo')}</span>Jetzt abgleichen</button>
+        <button type="button" class="row action" data-action="sync-invite"><span class="row-icon">${icon('share')}</span>Einladungslink teilen</button>
+        <button type="button" class="row action destructive" data-action="sync-leave"><span class="row-icon">${icon('xmark')}</span>Verbindung trennen</button>
+      </div>
+      <p class="section-footer">Änderungen werden automatisch abgeglichen. Striche von mehreren Handys werden zusammengezählt. Wer den Einladungslink hat, kann mitschreiben – also nur an die Stube-Runde schicken.</p>
+    </section>`;
+}
+
+let pendingRender = false;
+/** Neuzeichnen, ohne jemandem das gerade getippte Eingabefeld wegzunehmen. */
+function renderSafely() {
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && !a.closest('#alert-root')) {
+    pendingRender = true;
+    return;
+  }
+  render();
+}
+document.addEventListener('focusout', () => {
+  if (!pendingRender) return;
+  setTimeout(() => {
+    if (pendingRender) {
+      pendingRender = false;
+      renderSafely();
+    }
+  }, 50);
+});
+
+async function syncCreate() {
+  const d = ui.syncDraft || {};
+  const url = (d.url || '').trim().replace(/\/+$/, '');
+  const key = (d.key || '').trim();
+  if (!/^https?:\/\/\S+$/.test(url) || !key) {
+    hud('Bitte Projekt-URL und Anon-Key eintragen', 'warn');
+    return;
+  }
+  Sync.configure({ url, key, code: Sync.newCode() });
+  render();
+  try {
+    await Sync.run();
+    ui.syncDraft = null;
+    render();
+    hud('Gemeinsame Liste erstellt', 'check');
+    syncInvite();
+  } catch (e) {
+    const msg = e.message || String(e);
+    Sync.configure(null);
+    render();
+    iosAlert({
+      title: 'Verbindung fehlgeschlagen',
+      message: `${msg}\n\nSind URL und Anon-Key richtig, und wurde supabase.sql im Projekt ausgeführt?`,
+      actions: [{ label: 'OK', role: 'default', value: true }],
+    });
+  }
+}
+
+function syncInvite() {
+  shareText(`🍺 Mach mit bei der Zirbenstube-Strichliste!\nLink öffnen und „Beitreten“ tippen:\n${Sync.inviteLink()}`, 'Einladung Zirbenstube');
+}
+
+async function syncJoin(cfg) {
+  const ok = await confirmAlert('Gemeinsamer Liste beitreten?',
+    'Dieses Gerät übernimmt die gemeinsame Liste. Die bisherigen Daten auf diesem Gerät werden vorher als Kopie aufbewahrt.',
+    'Beitreten', 'default');
+  if (!ok) return;
+  try { localStorage.setItem(`${STORAGE_KEY}-vor-beitritt-${Date.now()}`, JSON.stringify(state)); } catch { /* egal */ }
+  Sync.configure(cfg);
+  render();
+  try {
+    await Sync.run({ join: true });
+    render();
+    hud('Beigetreten – ihr nutzt jetzt eine gemeinsame Liste', 'check');
+  } catch (e) {
+    Sync.configure(null);
+    render();
+    iosAlert({ title: 'Beitreten fehlgeschlagen', message: e.message || String(e), actions: [{ label: 'OK', role: 'default', value: true }] });
+  }
+}
+
+if (window.Sync) {
+  Sync.hooks.getState = () => state;
+  Sync.hooks.setState = (s) => {
+    state = migrate(s);
+    saveState({ fromSync: true });
+    renderSafely();
+  };
+  Sync.hooks.onStatus = () => {
+    renderChrome();
+    const el = $('#syncStatusText');
+    if (el) {
+      const [text, cls] = syncStatusText();
+      el.textContent = text;
+      el.className = `subtitle ${cls}`;
+      el.closest('.row')?.querySelector('.sync-dot')?.setAttribute('class', `sync-dot ${Sync.status}`);
+    }
+  };
+  setInterval(() => {
+    if (document.visibilityState === 'visible') Sync.run().catch(() => {});
+  }, 20000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') Sync.run().catch(() => {});
+  });
+  window.addEventListener('online', () => Sync.run().catch(() => {}));
+  els.syncDot.addEventListener('click', () => Sync.run().then(() => hud('Abgeglichen', 'check')).catch(() => hud('Abgleich fehlgeschlagen', 'warn')));
+}
+
 /* ---------------------------- Events ------------------------------ */
 
 els.navbar.addEventListener('click', (e) => {
@@ -1847,6 +2304,7 @@ els.navbar.addEventListener('click', (e) => {
   if (a === 'prev') shiftMonth(-1);
   else if (a === 'next') shiftMonth(1);
   else if (a === 'today') goToday();
+  else if (a === 'theke') openTheke();
   else if (a === 'prevYear' || a === 'nextYear' || a === 'thisYear') {
     ui.statsYear = a === 'thisYear' ? new Date().getFullYear() : ui.statsYear + (a === 'prevYear' ? -1 : 1);
     render();
@@ -1882,6 +2340,23 @@ async function onClick(e) {
   else if (ds.styleDrink) openSheet('styleDrink', ds.styleDrink);
   else if (ds.sharePerson) sharePerson(ds.sharePerson);
   else if (ds.buy) buyCrate(ds.buy);
+  else if (ds.empties) returnEmpty(ds.empties);
+  else if (ds.cash) openSheet('cash', ds.cash, '[name="amount"]');
+  else if (ds.cashCat || ds.payMethod || ds.defaultMethod) {
+    const group = t.closest('.mini-seg');
+    group.querySelectorAll('button').forEach((b) => {
+      const on = b === t;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on);
+    });
+    if (ds.cashCat) ui.cashCat = ds.cashCat;
+    if (ds.payMethod) ui.payMethod = ds.payMethod;
+    if (ds.defaultMethod) {
+      state.settings.defaultMethod = ds.defaultMethod;
+      ui.payMethod = null;
+      saveState();
+    }
+  } else if (ds.shareImage) shareImage(ds.shareImage);
   else if (ds.print) printSheet(ds.print === 'blank');
   else if (ds.removePerson) removeItem('person', ds.removePerson);
   else if (ds.removeDrink) removeItem('drink', ds.removeDrink);
@@ -1905,6 +2380,33 @@ async function onClick(e) {
     if (item) { item.color = ds.setColor; saveState(); render(); }
   } else if (ds.action === 'csv') exportCsv();
   else if (ds.action === 'share-all') shareText(allText(), `Abrechnung ${monthLabel()}`);
+  else if (ds.action === 'remind') shareText(reminderText(), 'Zahlungserinnerung');
+  else if (ds.action === 'sync-create') syncCreate();
+  else if (ds.action === 'sync-invite') syncInvite();
+  else if (ds.action === 'sync-now') Sync.run().then(() => hud('Abgeglichen', 'check')).catch(() => {});
+  else if (ds.action === 'sync-leave') {
+    if (await confirmAlert('Verbindung trennen?', 'Dieses Gerät behält seine Daten, gleicht aber nicht mehr mit den anderen ab.', 'Trennen')) {
+      Sync.configure(null);
+      render();
+      hud('Verbindung getrennt');
+    }
+  }
+  else if (ds.action === 'all-moves') { ui.allMoves = true; renderMain(); }
+  else if (ds.action === 'close-month') {
+    if (await confirmAlert(`${monthLabel()} abschließen?`, 'Danach lassen sich die Striche dieses Monats nicht mehr ändern. Zahlungen bleiben möglich, und du kannst den Monat jederzeit wieder öffnen.', 'Abschließen', 'default')) {
+      checkpoint();
+      Core.ensureMonth(state, monthKey()).closed = new Date().toISOString();
+      saveState();
+      render();
+      hud(`${monthLabel()} abgeschlossen`, 'lock', { undo: true });
+    }
+  } else if (ds.action === 'reopen-month') {
+    checkpoint();
+    delete state.months[monthKey()].closed;
+    saveState();
+    render();
+    hud(`${monthLabel()} wieder geöffnet`, 'lockOpen', { undo: true });
+  }
   else if (ds.action === 'export') exportJson();
   else if (ds.action === 'snooze') {
     meta.snoozeUntil = Date.now() + 7 * DAY;
@@ -1983,8 +2485,10 @@ function onChange(e) {
     t.value = num.format(price);
     saveState();
     hud(`${d.name}: ${eur.format(price)}`, 'check');
+  } else if (ds.syncField) {
+    ui.syncDraft = { ...(ui.syncDraft || {}), [ds.syncField]: t.value.trim() };
   } else if (ds.setting) {
-    state.settings[ds.setting] = t.value.trim();
+    state.settings[ds.setting] = t.type === 'checkbox' ? t.checked : t.value.trim();
     saveState();
   } else if (ds.stockTrack) {
     const d = findDrink(ds.stockTrack);
@@ -2008,17 +2512,18 @@ function onChange(e) {
     renderChrome();
     renderMain();
     els.sheetBody.querySelector('.sheet-hero .subtitle').textContent = stockText(d);
-  } else if (ds.crateCost) {
-    const d = findDrink(ds.crateCost);
-    if (t.value.trim() === '') d.crateCost = null;
+  } else if (ds.crateCost || ds.crateDeposit) {
+    const d = findDrink(ds.crateCost || ds.crateDeposit);
+    const field = ds.crateCost ? 'crateCost' : 'crateDeposit';
+    if (t.value.trim() === '') d[field] = null;
     else {
       const v = parsePrice(t.value);
       if (v === null) {
-        t.value = d.crateCost != null ? num.format(d.crateCost) : '';
-        hud('Ungültiger Preis', 'warn');
+        t.value = d[field] != null ? num.format(d[field]) : '';
+        hud('Ungültiger Betrag', 'warn');
         return;
       }
-      d.crateCost = v;
+      d[field] = v;
       t.value = num.format(v);
     }
     saveState();
@@ -2033,6 +2538,34 @@ function onChange(e) {
 function onSubmit(e) {
   e.preventDefault();
   const f = e.target;
+  if (f.dataset.form === 'cash') {
+    const kind = f.dataset.kind;
+    const amount = parsePrice(f.elements.amount.value);
+    if (amount === null || (kind !== 'adjust' && !amount)) {
+      hud('Bitte einen Betrag eingeben', 'warn');
+      return;
+    }
+    checkpoint();
+    const date = new Date().toISOString();
+    if (kind === 'adjust') {
+      const diff = round2(amount - Core.cashBalance(state));
+      if (Math.abs(diff) < 0.005) {
+        closeSheet();
+        hud('Kasse stimmt genau', 'check');
+        return;
+      }
+      state.cash.push({ id: uid(), kind: 'adjust', amount: diff, date, note: `Kasse gezählt: ${eur.format(amount)}`, category: 'Korrektur' });
+    } else {
+      const cats = [...f.querySelectorAll('[data-cash-cat]')];
+      const cat = cats.find((b) => b.getAttribute('aria-checked') === 'true')?.dataset.cashCat || '';
+      state.cash.push({ id: uid(), kind, amount, date, note: f.elements.note.value.trim(), category: cat });
+    }
+    saveState();
+    closeSheet();
+    render();
+    hud(kind === 'adjust' ? 'Kasse abgeglichen' : `${kind === 'in' ? 'Einnahme' : 'Ausgabe'} ${eur.format(amount)} gebucht`, 'check', { undo: true });
+    return;
+  }
   if (f.dataset.form === 'payment') {
     const amount = parsePrice(f.elements.amount.value);
     if (!amount) {
@@ -2041,7 +2574,7 @@ function onSubmit(e) {
     }
     const p = findPerson(f.dataset.pid);
     checkpoint();
-    state.payments.push({ id: uid(), pid: p.id, month: monthKey(), amount, date: new Date().toISOString() });
+    state.payments.push({ id: uid(), pid: p.id, month: monthKey(), amount, date: new Date().toISOString(), method: ui.payMethod || state.settings.defaultMethod || 'bar' });
     saveState();
     render();
     hud(`${eur.format(amount)} von ${p.name} gebucht`, 'check', { undo: true });
@@ -2058,11 +2591,7 @@ function onSubmit(e) {
       hud('Ungültiger Preis', 'warn');
       return;
     }
-    const g = guessDrink(name, state.drinks.length);
-    const d = {
-      id: uid(), name, price, emoji: g.emoji, color: g.color, archived: false,
-      stock: null, perCrate: /bier/i.test(name) ? 20 : 12, crateCost: null, minStock: null,
-    };
+    const d = Core.newDrink(name, price, state.drinks.length);
     state.drinks.push(d);
     const m = getMonth();
     if (m) m.prices[d.id] = price;
@@ -2100,7 +2629,12 @@ els.content.addEventListener('focusout', (e) => {
 
 // Sheet per Escape schließen
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && ui.sheet && !menuItemsOpen && !$('#alert-root').classList.contains('open')) closeSheet();
+  if (e.key !== 'Escape' || menuItemsOpen || $('#alert-root').classList.contains('open')) return;
+  if (ui.sheet) closeSheet();
+  else if (ui.theke?.pid) {
+    ui.theke.pid = null;
+    renderTheke();
+  } else if (ui.theke) closeTheke();
 });
 
 /* Sortieren per Ziehen am Griff */
@@ -2186,13 +2720,23 @@ window.addEventListener('storage', (e) => {
 });
 
 window.addEventListener('hashchange', () => {
+  const inv = window.Sync?.parseInvite(location.hash);
+  if (inv) {
+    history.replaceState(null, '', `${location.pathname}#${ui.tab}`);
+    syncJoin(inv);
+    return;
+  }
   const tab = location.hash.slice(1);
   if (TABS[tab] && tab !== ui.tab) setTab(tab);
 });
 
 /* ------------------------------ Start ----------------------------- */
 
+const invite = window.Sync?.parseInvite(location.hash);
+if (invite) history.replaceState(null, '', `${location.pathname}#${ui.tab}`);
 render();
+if (invite) syncJoin(invite);
+else window.Sync?.run().catch(() => {});
 navigator.storage?.persist?.().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

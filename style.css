@@ -664,13 +664,103 @@ body.sheet-open { overflow: hidden; }
 .rank.num { font-size: 15px; color: var(--label2); }
 .list.avatars:has(.rank) { --sep-inset: 104px; }
 
+/* ---------- Mini-Segmented-Control (Zahlart, Kategorie) ---------- */
+.mini-seg {
+  flex: 1; display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 2px;
+  padding: 3px; border-radius: 999px; background: var(--fill);
+}
+.mini-seg button {
+  height: 34px; padding: 0 6px; border: 0; border-radius: 999px; background: none;
+  font-size: 14px; font-weight: 500; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background .2s;
+}
+.mini-seg button.on { background: var(--seg-thumb); font-weight: 600; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+.sheet .mini-seg button.on { background: var(--seg-thumb); }
+
+/* ---------- Kasse ---------- */
+.cash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.pill-btn:disabled { opacity: .35; cursor: default; }
+.sheet-actions { padding: 0 16px; }
+.glass-btn.wide { width: 100%; height: 50px; font-size: 17px; }
+.badge-count {
+  flex: none; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px;
+  background: var(--red); color: #fff; font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.row.action .row-text { color: inherit; }
+
+/* ---------- Titel mit Sync-Punkt ---------- */
+.title-row { display: flex; align-items: center; gap: 10px; }
+.sync-dot {
+  width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--label3); position: relative; flex: none;
+}
+.sync-dot::before { content: ""; position: absolute; inset: -14px; }
+.sync-dot.ok { background: var(--green); }
+.sync-dot.busy { background: var(--orange); animation: pulse 1s ease-in-out infinite; }
+.sync-dot.error, .sync-dot.offline { background: var(--red); }
+@keyframes pulse { 50% { opacity: .35; } }
+.glass-btn.with-icon { gap: 6px; padding: 0 16px 0 12px; }
+.glass-btn.with-icon .ic { width: 20px; height: 20px; }
+.nav-leading { min-width: 0; }
+
+/* ---------- Alert mit Eingabe ---------- */
+.alert-input {
+  width: 100%; height: 44px; margin: 0 0 16px; padding: 0 14px;
+  border: 0; border-radius: 12px; background: var(--fill); font-size: 17px; outline: none; caret-color: var(--tint);
+}
+.alert-input:focus-visible { box-shadow: 0 0 0 2px var(--tint); }
+
+/* ---------- Theke ---------- */
+body.theke-open { overflow: hidden; }
+.theke {
+  position: fixed; inset: 0; z-index: 45; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  animation: fade .2s ease-out;
+}
+.theke-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; max-width: 1080px; margin: 0 auto 20px; padding: 0 4px; }
+.theke-head h1 { margin: 0; font-size: 34px; line-height: 41px; }
+.theke-head p { margin: 0; color: var(--label2); font-size: 15px; font-weight: 500; }
+.theke-closed { max-width: 1080px; margin: 0 auto 16px; color: var(--label2); }
+.theke-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+  max-width: 1080px; margin: 0 auto;
+}
+.theke-person, .theke-drink {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 10px 16px;
+  border: 0; border-radius: 28px; background: var(--cell); color: var(--label);
+  transition: transform .15s, box-shadow .3s;
+}
+.theke-person:active:not(:disabled), .theke-drink:active { transform: scale(.96); }
+.theke-person:disabled { opacity: .45; }
+.theke-person .name, .theke-drink .name { font-size: 19px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.theke-person .sub, .theke-drink .sub { font-size: 13px; color: var(--label2); }
+.theke-person.flash { box-shadow: 0 0 0 3px var(--green); }
+.theke-person.add { background: none; box-shadow: inset 0 0 0 2px var(--fill2); }
+.add-avatar { --c: var(--fill2); background: var(--fill); color: var(--tint); }
+.add-avatar .ic { width: 36px; height: 36px; stroke-width: 2.4; }
+.theke-picker-backdrop { position: fixed; inset: 0; background: var(--backdrop); animation: fade .2s; z-index: 1; }
+.theke-picker {
+  position: fixed; left: 50%; bottom: 0; z-index: 2; width: min(100%, 640px);
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 20px);
+  background: var(--sheet-bg); border-radius: 34px 34px 0 0; transform: translateX(-50%);
+  animation: picker-up .32s cubic-bezier(.2, .9, .25, 1);
+}
+@keyframes picker-up { from { transform: translate(-50%, 100%); } }
+.picker-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.picker-head h2 { flex: 1; margin: 0; font-size: 22px; }
+.picker-head .glass-btn .ic { width: 18px; height: 18px; stroke-width: 2.4; }
+.drink-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.theke-drink { background: var(--sheet-cell); }
+
 /* ---------- Druck ---------- */
 #print { display: none; }
 
 @media print {
   @page { size: A4 portrait; margin: 12mm; }
   html, body { background: #fff !important; color: #000 !important; }
-  .navbar, main, .tabbar, .bottom-fade, #hud, #alert-root, #sheet-root, #menu-root { display: none !important; }
+  .navbar, main, .tabbar, .bottom-fade, #hud, #alert-root, #sheet-root, #menu-root, #theke-root { display: none !important; }
   #print { display: block; font: 10pt/1.3 Arial, Helvetica, sans-serif; color: #000; }
   #print h1 { font-size: 16pt; text-align: center; margin: 0 0 3mm; }
   #print h2 { font-size: 11pt; margin: 5mm 0 2mm; }
@@ -689,3 +779,6 @@ body.sheet-open { overflow: hidden; }
 }
 
 .sheet .list { background: var(--sheet-cell); }
+.amount.green-text { color: var(--green-text); }
+.amount.red-text { color: var(--red-text); }
+.list.gap-top { margin-top: 12px; }

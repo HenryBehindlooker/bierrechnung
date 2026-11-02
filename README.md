@@ -1,70 +1,105 @@
 # Zirbenstube – Getränkeliste
 
 Web-App für die Bier- und Getränkeabrechnung der Zirbenstube. Sie ersetzt die
-Papier-Strichliste: Getränke pro Woche antippen, die Monatsabrechnung rechnet
-sich von selbst.
+Papier-Strichliste: Getränke antippen, die Monatsabrechnung rechnet sich von
+selbst. Läuft im Browser, offline und als App auf dem Home-Bildschirm.
+
+**Online:** <https://henrybehindlooker.github.io/bierrechnung/>
 
 ## Funktionen
 
-- **Strichliste:** Woche wählen (Woche 1–5, mit Datum), pro Person und Getränk
-  mit **+** / **−** zählen. Jede Aktion lässt sich direkt **rückgängig** machen.
-- **Abrechnung:** Betrag je Person und Getränk, Bezahlt-Kreis zum Abhaken,
-  **Teilzahlungen**, **Guthaben** und **offene Beträge aus Vormonaten**, die
-  automatisch mitgenommen werden. Wochenübersicht wie auf dem Papierbogen.
-- **Abrechnung verschicken:** pro Person oder für alle als fertiger Text über
-  WhatsApp, iMessage usw., auf Wunsch mit PayPal.me-Link über den offenen Betrag.
-- **Bestand:** Flaschen im Lager, „+ Kiste“ für Einkäufe, jeder Strich zieht
-  eine Flasche ab, Warnung bei niedrigem Bestand (roter Punkt am Tab). Mit
-  Kistenpreis zeigt die **Kasse** Einnahmen, Wareneinsatz und Gewinn.
-- **Statistik:** Jahresumsatz, Umsatz pro Monat als Diagramm, beliebteste
-  Getränke, Rangliste und der **Bierkönig des Monats** 👑.
-- **Drucken:** die ausgefüllte Monatsabrechnung oder die leere Druckvorlage
-  (A4, wie das Original-PDF). **CSV-Export** für Excel.
+- **Strichliste:** Woche wählen, pro Person und Getränk mit **+** / **−** zählen.
+  Jede Aktion lässt sich direkt **rückgängig** machen.
+- **Theke:** großer Modus für Feiern – Person antippen, Getränk antippen, fertig.
+  Gäste lassen sich dort direkt mit Namen anlegen.
+- **Abrechnung:** Beträge je Person, Bezahlt-Kreis, **Teilzahlungen**,
+  **Guthaben** und **offene Beträge aus Vormonaten** (werden automatisch
+  mitgenommen). Zahlart Bar, PayPal oder Überweisung.
+- **Verschicken:** Abrechnung pro Person als Text oder als **Bild**, Übersicht
+  an alle, **Zahlungserinnerung** an alle, die länger als zwei Wochen offen
+  sind – jeweils mit PayPal.me-Link über den offenen Betrag.
+- **Monat abschließen:** sperrt die Striche eines abgerechneten Monats.
+- **Kasse & Lager:** Barkasse mit Kassenbuch (Barzahlungen, Einkäufe, Leergut,
+  Einnahmen/Ausgaben, „Zählen“ zum Abgleichen), Lagerbestand mit „+ Kiste“ und
+  Warnung, **Pfand & Leergut**, Gewinn pro Monat.
+- **Statistik:** Umsatz pro Monat, beliebteste Getränke, Rangliste und der
+  **Bierkönig des Monats** 👑.
+- **Drucken & Export:** ausgefüllte Monatsabrechnung oder leere Druckvorlage
+  (A4, wie das Original-PDF), CSV für Excel.
 - **Einstellungen:** Personen (farbige Initialen) und Getränke (Symbol & Farbe)
-  anlegen, umbenennen, per Ziehen sortieren, nach links wischen zum Löschen;
-  Preise ändern – jeder Monat behält seine eigenen Preise.
-- **Sicherung:** über das Teilen-Menü z. B. in iCloud Drive speichern und wieder
-  importieren. Nach 30 Tagen ohne Sicherung erinnert die App.
-- Gedrückt halten öffnet an vielen Stellen ein Kontextmenü.
-- Funktioniert offline und lässt sich auf dem Handy oder Tablet zum
-  Startbildschirm hinzufügen (mit eigenem App-Icon).
+  anlegen, umbenennen, sortieren, wischen zum Löschen. Jeder Monat behält seine
+  eigenen Preise.
+- **Gemeinsam nutzen (optional):** alle tragen auf dem eigenen Handy ein, die
+  Daten werden über Supabase abgeglichen (siehe unten).
+- **Sicherung:** über das Teilen-Menü (z. B. iCloud Drive) speichern und wieder
+  importieren; nach 30 Tagen ohne Sicherung erinnert die App.
 
-## Design
-
-Die Oberfläche folgt dem SwiftUI- bzw. iOS-Design: große Navigationstitel,
-gruppierte Listen (Inset Grouped), Segmented Control für die Wochen, Stepper
-zum Zählen, eine schwebende Tab-Leiste im Liquid-Glass-Stil, Alerts im
-iOS-Stil sowie iOS-Systemfarben im Hell- und Dunkelmodus. Die Akzentfarbe ist
-Bernstein. Personen und Getränke lassen sich unter *Einstellungen → Bearbeiten*
-per Ziehen sortieren oder löschen.
-
-Standardmäßig angelegt: Leo, Max, Jonas, Gast 1, Gast 2 sowie Limo (1,50 €),
-Bier (1,80 €) und Spezi (1,80 €).
+Die Oberfläche folgt dem SwiftUI-/iOS-Design (große Titel, gruppierte Listen,
+Liquid-Glass-Leisten, Hell- und Dunkelmodus).
 
 ## Datenspeicherung
 
-Die Daten liegen **nur im Browser des Geräts** (localStorage). Am besten nutzt
-ihr ein gemeinsames Gerät, zum Beispiel ein Tablet in der Stube, und ladet ab und
-zu unter *Einstellungen → Sicherung exportieren* eine Sicherung herunter.
+Ohne „Gemeinsam nutzen“ liegen alle Daten **nur auf dem jeweiligen Gerät**
+(localStorage). Tipps:
 
-## Starten
+- Auf dem iPhone die App vom Home-Bildschirm nutzen (Safari-Tabs löschen Daten
+  nach 7 Tagen ohne Nutzung; Home-Bildschirm-App und Safari haben getrennte Daten).
+- Regelmäßig unter *Einstellungen → Sicherung teilen / speichern* sichern.
+- Updates der App löschen keine Daten. Alte Datenstände werden beim Laden
+  automatisch übernommen; ein unlesbarer Stand wird nie überschrieben, sondern
+  als Kopie aufbewahrt.
 
-Es gibt keinen Build-Schritt, die App besteht nur aus statischen Dateien.
+## Gemeinsam nutzen (Supabase)
+
+Damit alle auf ihrem eigenen Handy eintragen können, braucht es einmalig ein
+kostenloses Supabase-Projekt:
+
+1. Auf <https://supabase.com> ein Konto und ein neues Projekt anlegen
+   (Region z. B. Frankfurt).
+2. Im Projekt *SQL Editor* öffnen, den Inhalt von [`supabase.sql`](supabase.sql)
+   einfügen und ausführen.
+3. Unter *Project Settings → API* die **Project URL** und den **anon / publishable
+   key** kopieren.
+4. In der App *Einstellungen → Gemeinsam nutzen*: beides eintragen und
+   **„Gemeinsame Liste erstellen“** tippen. Die bisherigen Daten werden hochgeladen.
+5. **„Einladungslink teilen“** an die anderen schicken. Wer den Link öffnet und
+   „Beitreten“ tippt, ist dabei (die bisherigen Daten auf dem Gerät werden als
+   Kopie aufbewahrt).
+
+So funktioniert der Abgleich: Jedes Gerät merkt sich den letzten gemeinsamen
+Stand und führt Änderungen zusammen. Striche und Lagerbestand von mehreren
+Handys werden **addiert**, neue Personen, Zahlungen und Buchungen von allen
+Seiten bleiben erhalten. Offline weitergezählte Striche werden beim nächsten
+Online-Sein abgeglichen. Der grüne Punkt neben dem Titel zeigt den Status
+(antippen = sofort abgleichen).
+
+Sicherheit: Die Tabelle ist für den öffentlichen Key gesperrt; Zugriff gibt es
+nur über zwei Funktionen mit dem geheimen 32-stelligen Raumcode aus dem
+Einladungslink. Wer den Link hat, kann mitschreiben – also nur an die
+Stube-Runde schicken.
+
+## Entwicklung
+
+Keine Abhängigkeiten, kein Build-Schritt – nur statische Dateien.
 
 ```sh
-python3 -m http.server 8000
-# dann http://localhost:8000 öffnen
+npm start          # http://localhost:8000
+npm test           # Unit-Tests der Rechenlogik (Node ≥ 20)
+npm run test:e2e   # Browser-Test inkl. Abgleich zweier Geräte (braucht Playwright)
 ```
 
-**Online stellen mit GitHub Pages:** *Settings → Pages → Source: Deploy from a
-branch*, Branch `main` und Ordner `/ (root)` wählen. Die App ist danach unter
-`https://<benutzer>.github.io/bierrechnung/` erreichbar.
-
-## Dateien
+Die Unit-Tests laufen bei jedem Push automatisch (GitHub Actions).
 
 | Datei | Zweck |
 | --- | --- |
 | `index.html` | Grundgerüst |
-| `app.js` | Logik, Speicherung, Druck und Export |
-| `style.css` | Layout, Dunkelmodus, Druckansicht |
-| `sw.js`, `manifest.webmanifest`, `icon.svg` | Offline-Betrieb und Installation als App |
+| `core.js` | Rechenkern: Datenmodell, Übernahme alter Stände, Abrechnung, Kasse, Pfand, Zusammenführen |
+| `app.js` | Oberfläche, Bedienung, Druck, Teilen |
+| `sync.js` | Abgleich mit Supabase |
+| `style.css` | Design, Dunkelmodus, Druckansicht |
+| `supabase.sql` | Einmaliges Setup für „Gemeinsam nutzen“ |
+| `tests/` | Unit- und Browser-Tests |
+| `sw.js`, `manifest.webmanifest`, Icons | Offline-Betrieb und Installation als App |
+
+**Veröffentlichen mit GitHub Pages:** *Settings → Pages → Deploy from a branch*,
+Branch `main`, Ordner `/ (root)`.
