@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Zirbenstube">
@@ -34,6 +34,20 @@
 
   <div class="bottom-fade" aria-hidden="true"></div>
   <nav class="tabbar glass" id="tabbar" role="tablist" aria-label="Bereiche"></nav>
+
+  <div id="sheet-root" hidden>
+    <div class="sheet-backdrop" data-close-sheet></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <span></span>
+        <h2 id="sheetTitle"></h2>
+        <button type="button" class="glass glass-btn" data-close-sheet aria-label="Schließen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      </header>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </div>
+  <div id="menu-root" hidden></div>
 
   <div id="print" aria-hidden="true"></div>
   <div id="hud" class="glass" role="status" aria-live="polite"></div>

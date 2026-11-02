@@ -7,20 +7,27 @@ sich von selbst.
 ## Funktionen
 
 - **Strichliste:** Woche wählen (Woche 1–5, mit Datum), pro Person und Getränk
-  mit **+** / **−** zählen. Die aktuelle Woche ist vorausgewählt.
-- **Abrechnung:** Stückzahl und Betrag je Person und Getränk, Gesamtbetrag,
-  „bezahlt“-Haken pro Person, offene Summe und eine Wochenübersicht wie auf dem
-  Papierbogen.
+  mit **+** / **−** zählen. Jede Aktion lässt sich direkt **rückgängig** machen.
+- **Abrechnung:** Betrag je Person und Getränk, Bezahlt-Kreis zum Abhaken,
+  **Teilzahlungen**, **Guthaben** und **offene Beträge aus Vormonaten**, die
+  automatisch mitgenommen werden. Wochenübersicht wie auf dem Papierbogen.
+- **Abrechnung verschicken:** pro Person oder für alle als fertiger Text über
+  WhatsApp, iMessage usw., auf Wunsch mit PayPal.me-Link über den offenen Betrag.
+- **Bestand:** Flaschen im Lager, „+ Kiste“ für Einkäufe, jeder Strich zieht
+  eine Flasche ab, Warnung bei niedrigem Bestand (roter Punkt am Tab). Mit
+  Kistenpreis zeigt die **Kasse** Einnahmen, Wareneinsatz und Gewinn.
+- **Statistik:** Jahresumsatz, Umsatz pro Monat als Diagramm, beliebteste
+  Getränke, Rangliste und der **Bierkönig des Monats** 👑.
 - **Drucken:** die ausgefüllte Monatsabrechnung oder die leere Druckvorlage
-  (A4, wie das Original-PDF).
-- **CSV-Export** der Abrechnung (öffnet direkt in Excel).
-- **Einstellungen:** Personen und Getränke hinzufügen, umbenennen, sortieren und
-  entfernen; Preise ändern. Jeder Monat speichert seine eigenen Preise, eine
-  Preiserhöhung ändert also keine alten Abrechnungen.
-- **Sicherung:** alle Daten als JSON herunterladen und wieder laden, z. B. um sie
-  auf ein anderes Gerät zu übertragen.
+  (A4, wie das Original-PDF). **CSV-Export** für Excel.
+- **Einstellungen:** Personen (farbige Initialen) und Getränke (Symbol & Farbe)
+  anlegen, umbenennen, per Ziehen sortieren, nach links wischen zum Löschen;
+  Preise ändern – jeder Monat behält seine eigenen Preise.
+- **Sicherung:** über das Teilen-Menü z. B. in iCloud Drive speichern und wieder
+  importieren. Nach 30 Tagen ohne Sicherung erinnert die App.
+- Gedrückt halten öffnet an vielen Stellen ein Kontextmenü.
 - Funktioniert offline und lässt sich auf dem Handy oder Tablet zum
-  Startbildschirm hinzufügen.
+  Startbildschirm hinzufügen (mit eigenem App-Icon).
 
 ## Design
 
