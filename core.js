@@ -84,8 +84,108 @@
       && !!s.months && typeof s.months === 'object' && !Array.isArray(s.months);
   }
 
-  /** Bringt jeden älteren Stand (v1, v2) auf v3. Verändert und liefert `s`. */
-  function migrate(s) {
+  /* ----------------------------- Prüfung ----------------------------- */
+  /* Daten kommen auch aus Sicherungsdateien und von anderen Geräten. Bevor sie
+   * angezeigt oder verrechnet werden, wird jedes Feld auf Typ und Form geprüft –
+   * unbekannte Felder und ungültige Einträge fallen weg. Das verhindert, dass
+   * präparierte Daten Code in die Seite schleusen (XSS) oder die App zerlegen. */
+
+  const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+  const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+  const RESERVED = new Set(['__proto__', 'constructor', 'prototype']);
+  const okId = (x) => typeof x === 'string' && ID_RE.test(x) && !RESERVED.has(x);
+  const text = (x, max) => (typeof x === 'string' ? x : '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
+  const fin = (x) => typeof x === 'number' && Number.isFinite(x);
+  const money = (x) => (fin(x) && x >= 0 && x < 1e7 ? round2(x) : null);
+  const whole = (x, min, max) => (fin(x) && Math.round(x) >= min && Math.round(x) <= max ? Math.round(x) : null);
+  const dateStr = (x) => (typeof x === 'string' && x.length <= 40 && !Number.isNaN(Date.parse(x)) ? x : null);
+  const rows = (list, fn) => {
+    const seen = new Set();
+    const out = [];
+    for (const x of Array.isArray(list) ? list : []) {
+      if (!x || typeof x !== 'object' || !okId(x.id) || seen.has(x.id)) continue;
+      const r = fn(x);
+      if (!r) continue;
+      seen.add(x.id);
+      out.push(r);
+    }
+    return out;
+  };
+
+  /** Liefert eine geprüfte Kopie; alles Unbekannte oder Ungültige wird verworfen. */
+  function sanitize(s) {
+    const out = { version: fin(s.version) ? s.version : 1 };
+    out.persons = rows(s.persons, (p) => ({ id: p.id, name: text(p.name, 40) || 'Ohne Namen', color: p.color, archived: !!p.archived }));
+    out.drinks = rows(s.drinks, (d) => ({
+      id: d.id, name: text(d.name, 30) || 'Getränk', price: money(d.price) ?? 0,
+      emoji: text(d.emoji, 8), color: d.color, archived: !!d.archived,
+      stock: whole(d.stock, -100000, 100000), perCrate: whole(d.perCrate, 1, 1000),
+      crateCost: money(d.crateCost), crateDeposit: money(d.crateDeposit), minStock: whole(d.minStock, 0, 100000),
+    }));
+    out.months = {};
+    for (const [key, m] of Object.entries(s.months || {})) {
+      if (!MONTH_RE.test(key) || !m || typeof m !== 'object') continue;
+      const month = { prices: {}, counts: {} };
+      for (const [did, v] of Object.entries(m.prices || {})) if (okId(did) && money(v) != null) month.prices[did] = money(v);
+      for (const [w, week] of Object.entries(m.counts || {})) {
+        if (!/^[1-5]$/.test(w) || !week || typeof week !== 'object') continue;
+        for (const [pid, pc] of Object.entries(week)) {
+          if (!okId(pid) || !pc || typeof pc !== 'object') continue;
+          for (const [did, n] of Object.entries(pc)) {
+            const c = whole(n, 1, 100000);
+            if (okId(did) && c) ((month.counts[w] ??= {})[pid] ??= {})[did] = c;
+          }
+        }
+      }
+      if (dateStr(m.closed)) month.closed = m.closed;
+      if (m.paid && typeof m.paid === 'object') { // nur in sehr alten Ständen (v1)
+        month.paid = {};
+        for (const [pid, v] of Object.entries(m.paid)) if (okId(pid) && v) month.paid[pid] = true;
+      }
+      out.months[key] = month;
+    }
+    out.payments = rows(s.payments, (x) => {
+      if (!okId(x.pid) || !MONTH_RE.test(x.month) || !(money(x.amount) > 0)) return null;
+      const r = { id: x.id, pid: x.pid, month: x.month, amount: money(x.amount), date: dateStr(x.date) };
+      if (Object.hasOwn(METHODS, x.method)) r.method = x.method;
+      if (x.legacy) r.legacy = true;
+      return r;
+    });
+    out.purchases = rows(s.purchases, (x) => {
+      if (!okId(x.drinkId)) return null;
+      const r = {
+        id: x.id, drinkId: x.drinkId, date: dateStr(x.date) || '1970-01-01T00:00:00.000Z',
+        crates: whole(x.crates, 0, 10000) ?? 0, bottles: whole(x.bottles, 0, 1000000) ?? 0, cost: money(x.cost),
+      };
+      if (money(x.deposit) != null) r.deposit = money(x.deposit);
+      if (typeof x.fromCash === 'boolean') r.fromCash = x.fromCash;
+      return r;
+    });
+    out.empties = rows(s.empties, (x) => (okId(x.drinkId) ? {
+      id: x.id, drinkId: x.drinkId, date: dateStr(x.date) || '1970-01-01T00:00:00.000Z',
+      crates: whole(x.crates, 0, 10000) ?? 0, refund: money(x.refund) ?? 0,
+    } : null));
+    out.cash = rows(s.cash, (x) => {
+      if (!['in', 'out', 'adjust'].includes(x.kind) || !fin(x.amount) || Math.abs(x.amount) >= 1e7) return null;
+      if (x.kind !== 'adjust' && x.amount < 0) return null;
+      return {
+        id: x.id, kind: x.kind, amount: round2(x.amount), date: dateStr(x.date) || '1970-01-01T00:00:00.000Z',
+        note: text(x.note, 60), category: text(x.category, 30),
+      };
+    });
+    const st = s.settings && typeof s.settings === 'object' ? s.settings : {};
+    out.settings = {};
+    if (typeof st.paypal === 'string') out.settings.paypal = text(st.paypal, 40);
+    if (typeof st.note === 'string') out.settings.note = text(st.note, 120);
+    if (Object.hasOwn(METHODS, st.defaultMethod)) out.settings.defaultMethod = st.defaultMethod;
+    if (typeof st.purchasesFromCash === 'boolean') out.settings.purchasesFromCash = st.purchasesFromCash;
+    if (st.bierFirst === true) out.settings.bierFirst = true;
+    return out;
+  }
+
+  /** Prüft die Daten und bringt jeden älteren Stand (v1, v2) auf v3. Liefert den geprüften Stand. */
+  function migrate(input) {
+    const s = sanitize(input);
     s.persons.forEach((p, i) => {
       if (!COLOR_NAMES.includes(p.color)) p.color = PERSON_CYCLE[i % PERSON_CYCLE.length];
       p.archived = !!p.archived;
@@ -399,7 +499,7 @@
   return {
     VERSION, DAY, COLOR_NAMES, PERSON_CYCLE, METHODS,
     round2, uid, parsePrice, parseCount, keyOf, monthEnd, guessDrink, newDrink,
-    defaultState, isValidState, migrate,
+    defaultState, isValidState, sanitize, migrate,
     priceOf, count, monthTotal, ensureMonth, setCount,
     charge, account, oldestUnpaid, overdue,
     cashMovements, cashBalance, deposits,

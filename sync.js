@@ -73,15 +73,39 @@
       try {
         const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
         const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
-        return o.u && o.k && o.c ? { url: o.u, key: o.k, code: o.c } : null;
+        const cfg = { url: this.cleanUrl(o.u), key: o.k, code: o.c };
+        return cfg.url && this.validKey(cfg.key) && /^[A-Za-z0-9]{24,64}$/.test(cfg.code) ? cfg : null;
       } catch {
         return null;
       }
     },
 
+    /** Nur verschlüsselte Verbindungen (https); http ist allein für lokale Tests erlaubt. */
+    cleanUrl(u) {
+      try {
+        const url = new URL(String(u).trim());
+        const local = ['localhost', '127.0.0.1'].includes(url.hostname);
+        if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) return null;
+        if (url.username || url.password) return null;
+        return url.origin;
+      } catch {
+        return null;
+      }
+    },
+
+    validKey(k) {
+      return typeof k === 'string' && /^[A-Za-z0-9._-]{8,2000}$/.test(k);
+    },
+
+    host() {
+      try { return new URL(this.cfg.url).host; } catch { return ''; }
+    },
+
     async rpc(fn, body) {
       const res = await fetch(`${this.cfg.url.replace(/\/+$/, '')}/rest/v1/rpc/${fn}`, {
         method: 'POST',
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
         headers: {
           apikey: this.cfg.key,
           // Alte Anon-Keys sind JWTs und gehören zusätzlich in den Authorization-Header,

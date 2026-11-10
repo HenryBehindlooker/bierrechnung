@@ -148,6 +148,54 @@ test('Bier steht oben: neue Listen und einmalige Umstellung alter Listen', () =>
   assert.deepEqual(custom.drinks.map((d) => d.id), ['s', 'l', 'b']);
 });
 
+test('Prüfung: präparierte Daten werden bereinigt, gültige bleiben unverändert', () => {
+  const xss = '"><img src=x onerror=alert(1)>';
+  const dirty = fixture();
+  tally(dirty, '2026-10', 1, 'leo', 'bier', 2);
+  dirty.persons.push({ id: xss, name: 'x' }, { id: '__proto__', name: 'x' }, { id: 'leo', name: 'Doppelt' });
+  dirty.persons[0].color = xss;
+  dirty.drinks[0].perCrate = `5${xss}`;
+  dirty.drinks[0].stock = xss;
+  dirty.drinks[0].price = '1.5';
+  dirty.months[xss] = { counts: {} };
+  dirty.months['2026-10'].counts[1].leo.limo = `3${xss}`;
+  dirty.months['2026-10'].counts[1][xss] = { bier: 1 };
+  dirty.months['2026-10'].counts[9] = { leo: { bier: 1 } };
+  dirty.months['2026-10'].unbekannt = xss;
+  dirty.payments.push({ id: 'ok', pid: 'leo', month: '2026-10', amount: 2, method: 'bar' },
+    { id: 'neg', pid: 'leo', month: '2026-10', amount: -5 }, { id: 'mon', pid: 'leo', month: xss, amount: 5 },
+    { id: 'str', pid: 'leo', month: '2026-10', amount: '5' });
+  dirty.purchases = [{ id: 'k', drinkId: 'bier', crates: xss, bottles: 20, cost: 15, date: xss }];
+  dirty.cash = [{ id: 'c', kind: 'in', amount: 5, note: `Hallo\u0000${'x'.repeat(100)}`, date: '2026-10-01T10:00:00Z' }, { id: 'c2', kind: xss, amount: 5 }];
+  dirty.settings.defaultMethod = xss;
+  dirty.settings.fremd = xss;
+
+  const s = Core.migrate(clone(dirty));
+  assert.deepEqual(s.persons.map((p) => p.id), ['leo', 'max'], 'ungültige und doppelte ids fallen weg');
+  assert.ok(Core.COLOR_NAMES.includes(s.persons[0].color));
+  assert.equal(s.drinks[0].perCrate, 12, 'kaputte Kistengröße → Standard');
+  assert.equal(s.drinks[0].stock, null);
+  assert.equal(s.drinks[0].price, 0, 'Preis als Text wird nicht übernommen');
+  assert.deepEqual(Object.keys(s.months), ['2026-10']);
+  assert.deepEqual(s.months['2026-10'].counts, { 1: { leo: { bier: 2 } } });
+  assert.equal(s.months['2026-10'].unbekannt, undefined);
+  assert.deepEqual(s.payments.map((p) => p.id), ['ok']);
+  assert.equal(s.purchases[0].crates, 0);
+  assert.equal(s.purchases[0].date, '1970-01-01T00:00:00.000Z');
+  assert.equal(s.cash.length, 1);
+  assert.equal(s.cash[0].note.length, 60);
+  assert.equal(s.settings.defaultMethod, 'bar');
+  assert.equal(s.settings.fremd, undefined);
+  assert.equal(JSON.stringify(s).includes('<img'), false, 'kein HTML mehr in den Daten');
+  assert.equal({}.polluted, undefined);
+
+  // ein sauberer Stand übersteht die Prüfung unverändert
+  const clean = Core.defaultState();
+  tally(clean, '2026-11', 2, clean.persons[0].id, clean.drinks[0].id, 3);
+  clean.payments.push({ id: 'p1', pid: clean.persons[0].id, month: '2026-11', amount: 5.4, date: '2026-11-10T10:00:00.000Z', method: 'paypal' });
+  assert.deepEqual(Core.migrate(clone(clean)), clean);
+});
+
 test('Ungültige Daten werden erkannt', () => {
   assert.equal(Core.isValidState(null), false);
   assert.equal(Core.isValidState({ persons: [], drinks: [] }), false);

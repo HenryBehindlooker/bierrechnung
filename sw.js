@@ -1,6 +1,6 @@
 // Service Worker: macht die App offline nutzbar.
 // Netzwerk zuerst (damit Updates sofort ankommen), sonst Cache.
-const CACHE = 'zirbenstube-v4';
+const CACHE = 'zirbenstube-v5';
 const ASSETS = ['./', 'index.html', 'style.css', 'core.js', 'sync.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {

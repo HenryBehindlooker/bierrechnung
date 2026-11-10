@@ -83,12 +83,28 @@ Stube-Runde schicken.
 Keine Abhängigkeiten, kein Build-Schritt – nur statische Dateien.
 
 ```sh
-npm start          # http://localhost:8000
-npm test           # Unit-Tests der Rechenlogik (Node ≥ 20)
-npm run test:e2e   # Browser-Test inkl. Abgleich zweier Geräte (braucht Playwright)
+npm start                 # http://localhost:8000
+npm test                  # Unit-Tests des Rechenkerns (Node ≥ 20)
+npm run test:acceptance   # Abnahmetests im Browser (braucht Playwright)
+npm run test:e2e          # Abgleich zweier Geräte (braucht Playwright)
 ```
 
-Die Unit-Tests laufen bei jedem Push automatisch (GitHub Actions).
+Alle drei Testläufe starten bei jedem Push automatisch (GitHub Actions).
+
+### Abnahmetests
+
+`tests/acceptance.js` spielt jede Anforderung als Userflow im Browser durch:
+
+| Bereich | Anforderungen |
+| --- | --- |
+| **A · Strichliste** | Standardliste mit Bier zuerst, aktuelle Woche vorausgewählt, Strich mit einem Tipp, Rückgängig, Theke |
+| **B · Abrechnung** | Stück × Preis, Vormonate, Teilzahlung und Guthaben, Monatspreise, Monat abschließen, Druck auf einer A4-Seite, Verschicken mit PayPal-Link |
+| **C · Kasse & Lager** | Kassenstand, Zahlarten, Bestand mit Warnung, Kiste, Pfand und Leergut |
+| **D · Verwaltung** | Personen anlegen/umbenennen/löschen/sortieren, Sicherung hin und zurück, Statistik, Übernahme alter Daten |
+| **E · Bedienbarkeit & Design** | kein Überlauf bei 320/375/768 px, Tippflächen ≥ 44 pt, SwiftUI-Look hell/dunkel, Tastatur und Fokus, Sheet wegwischen, offline |
+| **S · Sicherheit** | präparierte Sicherung, Content-Security-Policy, CSV-Formeln, Einladungslinks |
+
+Der Security-Review mit allen Befunden steht in [`SECURITY.md`](SECURITY.md).
 
 | Datei | Zweck |
 | --- | --- |
@@ -98,7 +114,7 @@ Die Unit-Tests laufen bei jedem Push automatisch (GitHub Actions).
 | `sync.js` | Abgleich mit Supabase |
 | `style.css` | Design, Dunkelmodus, Druckansicht |
 | `supabase.sql` | Einmaliges Setup für „Gemeinsam nutzen“ |
-| `tests/` | Unit- und Browser-Tests |
+| `tests/` | Unit-Tests, Abnahmetests und Zwei-Geräte-Test |
 | `sw.js`, `manifest.webmanifest`, Icons | Offline-Betrieb und Installation als App |
 
 **Veröffentlichen mit GitHub Pages:** *Settings → Pages → Deploy from a branch*,
