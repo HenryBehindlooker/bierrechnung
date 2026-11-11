@@ -116,6 +116,17 @@ const defaultState = () => Core.defaultState();
 const isValidState = (s) => Core.isValidState(s);
 const migrate = (s) => Core.migrate(s);
 
+/** Sicherheitskopie im Gerätespeicher ablegen; pro Art bleiben nur die zwei neuesten. */
+function keepCopy(kind, raw) {
+  try {
+    const prefix = `${STORAGE_KEY}-${kind}-`;
+    const old = Object.keys(localStorage).filter((k) => k.startsWith(prefix)).sort();
+    if (old.some((k) => localStorage.getItem(k) === raw)) return;
+    old.slice(0, Math.max(0, old.length - 1)).forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem(prefix + Date.now(), raw);
+  } catch { /* Speicher voll – nicht kritisch */ }
+}
+
 let loadedNeedsSave = false;
 function loadState() {
   let raw = null;
@@ -131,7 +142,7 @@ function loadState() {
       console.error('Daten konnten nicht gelesen werden', e);
     }
     // Niemals überschreiben, was wir nicht lesen konnten: Rohdaten aufbewahren
-    try { localStorage.setItem(`${STORAGE_KEY}-unlesbar-${Date.now()}`, raw); } catch { /* egal */ }
+    keepCopy('unlesbar', raw);
   }
   return defaultState();
 }
@@ -279,7 +290,7 @@ const els = {
 };
 
 els.tabbar.innerHTML = Object.entries(TABS).map(([key, label]) =>
-  `<button type="button" role="tab" data-tab="${key}">${icon(TAB_ICONS[key])}<span>${label}</span><i class="badge" hidden></i></button>`).join('');
+  `<button type="button" data-tab="${key}">${icon(TAB_ICONS[key])}<span>${label}</span><i class="badge" hidden></i></button>`).join('');
 
 /* Fokus über Neuzeichnen hinweg erhalten (Tastatur & Screenreader) */
 function focusSelector(el) {
@@ -339,7 +350,8 @@ function renderChrome() {
   } else {
     els.navLeading.innerHTML = (isThisMonth()
       ? '' : '<button type="button" class="glass glass-btn text" data-nav="today">Heute</button>')
-      + (ui.tab === 'liste' ? `<button type="button" class="glass glass-btn text with-icon" data-nav="theke">${icon('counter')}Theke</button>` : '');
+      + (ui.tab === 'liste' ? `<button type="button" class="glass glass-btn text with-icon" data-nav="theke" aria-label="Theke">${icon('counter')}<span class="lbl">Theke</span></button>` : '');
+    els.navLeading.classList.toggle('crowded', !isThisMonth() && ui.tab === 'liste');
     els.navTrailing.innerHTML = pair('prev', 'next', 'Monat wechseln');
   }
   els.syncDot.hidden = !window.Sync?.configured();
@@ -347,7 +359,7 @@ function renderChrome() {
 
   const low = state.drinks.some((d) => !d.archived && isLow(d));
   els.tabbar.querySelectorAll('[data-tab]').forEach((b) => {
-    b.setAttribute('aria-selected', b.dataset.tab === ui.tab);
+    if (b.dataset.tab === ui.tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     const badge = b.querySelector('.badge');
     badge.hidden = !(b.dataset.tab === 'bestand' && low);
     b.setAttribute('aria-label', `${TABS[b.dataset.tab]}${!badge.hidden ? ', Bestand niedrig' : ''}`);
@@ -410,7 +422,7 @@ function renderListe() {
   for (let w = 1; w <= wc; w++) {
     const on = w === ui.week;
     seg += `<button type="button" role="radio" aria-checked="${on}" tabindex="${on ? 0 : -1}"
-      data-week="${w}" class="${w === tw ? 'today' : ''}">Woche ${w}</button>`;
+      data-week="${w}" class="${w === tw ? 'today' : ''}" aria-label="Woche ${w}"><span class="seg-long">Woche </span>${w}</button>`;
   }
   seg += '</div></div>';
   const closed = isClosed() ? `<section class="list-section banner-section"><div class="list banner">
@@ -427,7 +439,7 @@ function renderWeekBody() {
   const m = getMonth();
   const persons = visiblePersons(m);
   const drinks = visibleDrinks(m);
-  const caption = `${weekRange(ui.year, ui.month, ui.week)} ${MONTH_NAMES[ui.month]}`
+  const caption = `Woche ${ui.week} · ${weekRange(ui.year, ui.month, ui.week)} ${MONTH_NAMES[ui.month]}`
     + (ui.week === todayWeek() ? ' · diese Woche' : '');
   let h = `<p class="seg-caption">${caption}</p>`;
   if (!persons.length || !drinks.length) return h + emptyState();
@@ -568,9 +580,9 @@ function renderAbrechnung() {
     h += `<div class="row bill-row" data-menu="bill:${p.id}">
         <button type="button" class="row-main" data-open-person="${p.id}" aria-label="${esc(p.name)}: Details und Zahlungen">
           ${avatar(p)}
-          <span class="row-text"><span class="title">${esc(p.name)}</span><span class="subtitle">${esc(items)}</span>
-            ${status ? `<span class="status ${cls}">${status}</span>` : ''}</span>
+          <span class="row-text"><span class="title">${esc(p.name)}</span><span class="subtitle">${esc(items)}</span></span>
           <span class="amount">${eur.format(a.charge)}</span>
+          ${status ? `<span class="status ${cls}">${status}</span>` : ''}
         </button>
         <button type="button" class="check" data-paid="${p.id}" aria-pressed="${a.relevant && a.settled}"
           ${a.relevant ? '' : 'disabled'} aria-label="${esc(label)}">${icon('check')}</button>
@@ -608,7 +620,7 @@ function renderAbrechnung() {
     }
     h += `<div class="row-group"><details data-week-details="${w}" ${ui.openWeeks.has(w) ? 'open' : ''}>
         <summary class="row">
-          <div class="row-text"><span class="title">Woche ${w}</span><span class="subtitle">${weekRange(ui.year, ui.month, w)} ${MONTH_NAMES[ui.month]}</span></div>
+          <div class="row-text"><span class="title">Woche ${w}</span><span class="subtitle">${weekRange(ui.year, ui.month, w)} ${MONTH_SHORT[ui.month]}.</span></div>
           <span class="trailing">${wQty} Stk. · ${eur.format(round2(wAmt))}</span>
           ${icon('chevronRight', 'chev')}
         </summary>
@@ -672,7 +684,9 @@ function renderBestand() {
           <button type="button" class="pill-btn" data-cash="adjust">${icon('coins')}Zählen</button>
         </div>
       </div>
-      <p class="section-footer">Barzahlungen, Einkäufe aus der Kasse und Leergut werden automatisch gebucht. „Zählen“ gleicht den Stand mit dem echten Bargeld ab.</p>
+      <p class="section-footer">${moves.length
+        ? 'Barzahlungen, Einkäufe aus der Kasse und Leergut werden automatisch gebucht. „Zählen“ gleicht den Stand mit dem echten Bargeld ab.'
+        : '<b>So startest du:</b> Bargeld in der Kasse zählen und über „Zählen“ eintragen. Ab dann bucht die App Barzahlungen, Einkäufe und Leergut automatisch mit.'}</p>
     </section>`;
 
   if (moves.length) {
@@ -719,8 +733,7 @@ function renderBestand() {
       <div class="list tiles">${depRows.length ? depRows.map((r) => `<div class="row">
           ${drinkTile(r.drink)}
           <div class="row-text"><span class="title">${esc(r.drink.name)}</span>
-            <span class="subtitle">${plural(r.crates, 'Kiste', 'Kisten')} offen</span></div>
-          <span class="amount">${eur.format(r.value)}</span>
+            <span class="subtitle">${plural(r.crates, 'Kiste', 'Kisten')} offen · ${eur.format(r.value)}</span></div>
           <button type="button" class="pill-btn" data-empties="${r.drink.id}" ${r.crates > 0 ? '' : 'disabled'}
             aria-label="Eine Kiste ${esc(r.drink.name)} Leergut zurückgebracht">${icon('recycle')}Zurück</button>
         </div>`).join('') : '<div class="row"><span class="row-text"><span class="subtitle">Noch kein Pfand erfasst</span></span></div>'}
@@ -1000,7 +1013,7 @@ function renderEinstellungen() {
   return `<div class="narrow">
     <section class="list-section">
       <h2 class="section-header">Personen</h2>
-      <div class="list avatars" data-list="person">
+      <div class="list avatars${e ? ' editing' : ''}" data-list="person">
         ${persons.map((p) => row('person', p, `
           <button type="button" class="avatar-btn" data-style-person="${p.id}" aria-label="Farbe von ${esc(p.name)} ändern">${avatar(p)}</button>
           <input class="field" value="${esc(p.name)}" data-rename-person="${p.id}" aria-label="Name" maxlength="40" autocomplete="off">`)).join('')}
@@ -1015,11 +1028,11 @@ function renderEinstellungen() {
 
     <section class="list-section">
       <h2 class="section-header">Getränke &amp; Preise</h2>
-      <div class="list tiles" data-list="drink">
+      <div class="list tiles${e ? ' editing' : ''}" data-list="drink">
         ${drinks.map((d) => row('drink', d, `
           <button type="button" class="tile-btn" data-style-drink="${d.id}" aria-label="Symbol und Farbe von ${esc(d.name)} ändern">${drinkTile(d)}</button>
           <input class="field" value="${esc(d.name)}" data-rename-drink="${d.id}" aria-label="Getränk" maxlength="30" autocomplete="off">
-          <span class="price-wrap"><input class="field price" value="${num.format(d.price)}" inputmode="decimal"
+          <span class="price-wrap${e ? ' hide-in-edit' : ''}"><input class="field price" value="${num.format(d.price)}" inputmode="decimal"
             data-price-drink="${d.id}" aria-label="Preis von ${esc(d.name)} in Euro" autocomplete="off"><span class="unit">€</span></span>`)).join('')}
         <form class="row edit add" data-form="drink">
           <button class="add-circle" aria-label="Getränk hinzufügen">${icon('plus')}</button>
@@ -1049,7 +1062,7 @@ function renderEinstellungen() {
       <h2 class="section-header">Kasse</h2>
       <div class="list">
         <div class="row edit"><span class="row-text"><span class="title">Standard-Zahlart</span><span class="subtitle">Für den Bezahlt-Kreis</span></span></div>
-        <div class="row">${segmented('data-default-method', METHODS, state.settings.defaultMethod, 'Standard-Zahlart')}</div>
+        <div class="row">${segmented('data-default-method', METHOD_SHORT, state.settings.defaultMethod, 'Standard-Zahlart')}</div>
         <label class="row edit"><span class="row-text"><span class="title">Einkäufe aus der Barkasse</span><span class="subtitle">„+ Kiste“ bucht Kosten und Pfand ab</span></span>
           <input type="checkbox" class="switch" data-setting="purchasesFromCash" ${state.settings.purchasesFromCash ? 'checked' : ''}></label>
       </div>
@@ -1087,8 +1100,17 @@ function closeSheet() {
   renderSheet();
 }
 
+/** Hintergrund für Tastatur und Screenreader sperren, solange ein Sheet oder die Theke offen ist. */
+function updateInert() {
+  const on = !!ui.sheet || !!ui.theke;
+  for (const el of [els.navbar, $('#view'), els.tabbar]) el.inert = on;
+  const theke = $('#theke-root');
+  if (theke) theke.inert = !!ui.sheet;
+}
+
 function renderSheet() {
   const root = els.sheetRoot;
+  updateInert();
   if (!ui.sheet) {
     if (!root.hidden) {
       root.classList.remove('open');
@@ -1129,6 +1151,7 @@ function sheetContent({ kind, id }) {
   return null;
 }
 
+const METHOD_SHORT = { bar: 'Bar', paypal: 'PayPal', bank: 'Bank' };
 const segmented = (attr, options, selected, label) =>
   `<div class="mini-seg" role="radiogroup" aria-label="${label}">${Object.entries(options).map(([k, v]) =>
     `<button type="button" role="radio" aria-checked="${k === selected}" class="${k === selected ? 'on' : ''}" ${attr}="${k}">${v}</button>`).join('')}</div>`;
@@ -1205,7 +1228,7 @@ function personSheet(pid) {
               value="${a.due > 0 ? num.format(a.due) : ''}" placeholder="0,00" aria-label="Betrag in Euro" required><span class="unit">€</span></span>
             <button class="glass-btn text small prominent">Buchen</button>
           </div>
-          <div class="row">${segmented('data-pay-method', METHODS, ui.payMethod || state.settings.defaultMethod, 'Zahlart')}</div>
+          <div class="row">${segmented('data-pay-method', METHOD_SHORT, ui.payMethod || state.settings.defaultMethod, 'Zahlart')}</div>
         </form>
         <p class="section-footer">Teilzahlungen sind möglich. Wer mehr zahlt, bekommt Guthaben für die nächsten Monate. Barzahlungen landen im Kassenbuch.</p>
       </section>
@@ -1473,6 +1496,7 @@ function renderTheke() {
   if (!ui.theke) {
     if (root) root.remove();
     document.body.classList.remove('theke-open');
+    updateInert();
     return;
   }
   const first = !root;
@@ -1486,6 +1510,7 @@ function renderTheke() {
     document.body.appendChild(root);
     root.addEventListener('click', onThekeClick);
     document.body.classList.add('theke-open');
+    updateInert();
   }
   const m = getMonth();
   const persons = state.persons.filter((p) => !p.archived);
@@ -1879,7 +1904,11 @@ function exportCsv() {
   const m = getMonth();
   const persons = billPersons(key);
   const drinks = visibleDrinks(m);
-  const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  // Excel führt Zellen aus, die mit = + - @ beginnen → Text mit Apostroph entschärfen
+  const q = (v) => {
+    const t = String(v);
+    return `"${(typeof v === 'string' && /^[=+\-@\t\r]/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`;
+  };
   const rows = [['Person', ...drinks.map((d) => `${d.name} (Stk.)`), 'Betrag Monat (€)', 'Aus Vormonaten (€)', 'Zu zahlen (€)', 'Status']];
   for (const p of persons) {
     const a = account(p.id, key);
@@ -2188,7 +2217,7 @@ function syncSection() {
       <h2 class="section-header">Gemeinsam nutzen</h2>
       <div class="list icons">
         <div class="row"><span class="row-icon"><span class="sync-dot ${S.status}"></span></span>
-          <span class="row-text"><span class="title">Gemeinsame Liste aktiv</span><span class="subtitle ${cls}" id="syncStatusText">${esc(text)}</span></span></div>
+          <span class="row-text"><span class="title">Gemeinsame Liste aktiv</span><span class="subtitle">${esc(S.host())}</span><span class="subtitle ${cls}" id="syncStatusText">${esc(text)}</span></span></div>
         <button type="button" class="row action" data-action="sync-now"><span class="row-icon">${icon('undo')}</span>Jetzt abgleichen</button>
         <button type="button" class="row action" data-action="sync-invite"><span class="row-icon">${icon('share')}</span>Einladungslink teilen</button>
         <button type="button" class="row action destructive" data-action="sync-leave"><span class="row-icon">${icon('xmark')}</span>Verbindung trennen</button>
@@ -2219,10 +2248,14 @@ document.addEventListener('focusout', () => {
 
 async function syncCreate() {
   const d = ui.syncDraft || {};
-  const url = (d.url || '').trim().replace(/\/+$/, '');
+  const url = Sync.cleanUrl(d.url || '');
   const key = (d.key || '').trim();
-  if (!/^https?:\/\/\S+$/.test(url) || !key) {
-    hud('Bitte Projekt-URL und Anon-Key eintragen', 'warn');
+  if (!url) {
+    hud('Projekt-URL muss mit https:// beginnen', 'warn');
+    return;
+  }
+  if (!Sync.validKey(key)) {
+    hud('Bitte den Anon-Key vollständig eintragen', 'warn');
     return;
   }
   Sync.configure({ url, key, code: Sync.newCode() });
@@ -2250,11 +2283,13 @@ function syncInvite() {
 }
 
 async function syncJoin(cfg) {
+  let host = '';
+  try { host = new URL(cfg.url).host; } catch { /* unten abgefangen */ }
   const ok = await confirmAlert('Gemeinsamer Liste beitreten?',
-    'Dieses Gerät übernimmt die gemeinsame Liste. Die bisherigen Daten auf diesem Gerät werden vorher als Kopie aufbewahrt.',
+    `Dieses Gerät übernimmt die gemeinsame Liste vom Server ${host}. Tritt nur bei, wenn du den Link von jemandem aus der Stube bekommen hast.\n\nDie bisherigen Daten auf diesem Gerät werden vorher als Kopie aufbewahrt.`,
     'Beitreten', 'default');
   if (!ok) return;
-  try { localStorage.setItem(`${STORAGE_KEY}-vor-beitritt-${Date.now()}`, JSON.stringify(state)); } catch { /* egal */ }
+  keepCopy('vor-beitritt', JSON.stringify(state));
   Sync.configure(cfg);
   render();
   try {
@@ -2626,6 +2661,32 @@ els.content.addEventListener('focusout', (e) => {
   const chart = e.target.closest('.col-chart');
   if (chart && !chart.contains(e.relatedTarget)) hideTip(chart);
 });
+
+// Sheet nach unten wischen zum Schließen (wie .sheet in SwiftUI)
+let sheetDrag = null;
+els.sheetRoot.addEventListener('pointerdown', (e) => {
+  const g = e.target.closest('.sheet-grab');
+  if (!g || e.target.closest('button')) return;
+  sheetDrag = { y: e.clientY, t: performance.now(), dy: 0 };
+  els.sheet.classList.add('dragging');
+  g.setPointerCapture(e.pointerId);
+});
+els.sheetRoot.addEventListener('pointermove', (e) => {
+  if (!sheetDrag) return;
+  sheetDrag.dy = Math.max(0, e.clientY - sheetDrag.y);
+  els.sheet.style.transform = `translate(-50%, ${sheetDrag.dy}px)`;
+});
+const endSheetDrag = () => {
+  if (!sheetDrag) return;
+  const { dy, t } = sheetDrag;
+  sheetDrag = null;
+  const speed = dy / Math.max(1, performance.now() - t);
+  els.sheet.classList.remove('dragging');
+  els.sheet.style.transform = '';
+  if (dy > 110 || (dy > 30 && speed > 0.6)) closeSheet();
+};
+els.sheetRoot.addEventListener('pointerup', endSheetDrag);
+els.sheetRoot.addEventListener('pointercancel', endSheetDrag);
 
 // Sheet per Escape schließen
 document.addEventListener('keydown', (e) => {
