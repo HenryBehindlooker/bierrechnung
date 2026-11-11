@@ -326,7 +326,7 @@ for (const width of [320, 375, 768]) {
   }, { state: billState(), viewport: { width, height: 800 } });
 }
 
-test('E-02', 'Tippflächen der wichtigsten Bedienelemente sind mindestens 44 pt hoch', async ({ page }) => {
+for (const width of [320, 390]) test(`E-02/${width}`, `Tippflächen der wichtigsten Bedienelemente sind mindestens 44 pt hoch (${width} px)`, async ({ page }) => {
   // Prüft per Treffertest: 21 px über/unter der Mitte muss noch das Element getroffen werden.
   const probe = (sel, d = 21) => page.evaluate(([s, dist]) => {
     const bad = [];
@@ -356,7 +356,7 @@ test('E-02', 'Tippflächen der wichtigsten Bedienelemente sind mindestens 44 pt 
   assert.deepEqual(await probe('.avatar-btn, .tile-btn, .add-circle, .mini-seg button', 19), []);
   await page.click('[data-nav="edit"]');
   assert.deepEqual(await probe('.del-circle', 19), []);
-}, { state: billState() });
+}, { state: billState(), viewport: { width, height: 800 } });
 
 test('E-03', 'SwiftUI-Look: Systemschrift, Systemfarben hell/dunkel, einheitliche Listen', async ({ page, browser, base }) => {
   const look = (p) => p.evaluate(() => ({
